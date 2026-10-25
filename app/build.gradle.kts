@@ -10,16 +10,42 @@ plugins {
 
 android {
   namespace = "com.example"
-  compileSdk = 35
+  compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.ararcicis"
+    applicationId = "com.aistudio.arartoz.jvsd"
     minSdk = 24
-    targetSdk = 35
-    versionCode = 1
-    versionName = "1.0"
+    targetSdk = 36
+    versionCode = 2
+    versionName = "1.0.1"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+  }
+
+  // Do not remove or modify these signingConfigs. They are necessary for building, installing,
+  // and updating Android apps in AI Studio.
+  signingConfigs {
+    create("release") {
+      val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
+      storeFile = file(keystorePath)
+      storePassword = System.getenv("STORE_PASSWORD") ?: "ArArToz2026Key!"
+      keyAlias = System.getenv("KEY_ALIAS") ?: "arartoz"
+      keyPassword = System.getenv("KEY_PASSWORD") ?: "ArArToz2026Key!"
+    }
+    create("debugConfig") {
+      val debugKeystore = file("${rootDir}/debug.keystore")
+      if (debugKeystore.exists()) {
+        storeFile = debugKeystore
+        storePassword = "android"
+        keyAlias = "androiddebugkey"
+        keyPassword = "android"
+      } else {
+        storeFile = file("${rootDir}/my-upload-key.jks")
+        storePassword = System.getenv("STORE_PASSWORD") ?: "ArArToz2026Key!"
+        keyAlias = System.getenv("KEY_ALIAS") ?: "arartoz"
+        keyPassword = System.getenv("KEY_PASSWORD") ?: "ArArToz2026Key!"
+      }
+    }
   }
 
   buildTypes {
@@ -27,25 +53,25 @@ android {
       isCrunchPngs = false
       isMinifyEnabled = false
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      signingConfig = signingConfigs.getByName("debug")
+      // Do not remove or modify this signingConfig assignment. It is necessary for Android apps in
+      // AI Studio.
+      signingConfig = signingConfigs.getByName("release")
     }
-    debug { signingConfig = signingConfigs.getByName("debug") }
+    debug {
+      // Do not remove or modify this signingConfig assignment. It is necessary for Android apps in
+      // AI Studio.
+      signingConfig = signingConfigs.getByName("debugConfig")
+    }
   }
-
   compileOptions {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
   }
   buildFeatures {
     compose = true
     buildConfig = true
   }
   testOptions { unitTests { isIncludeAndroidResources = true } }
-  lint {
-    checkReleaseBuilds = false
-    abortOnError = false
-    disable += "InvalidFragmentVersionForActivityResult"
-  }
   dependenciesInfo {
     includeInApk = false
     includeInBundle = true
@@ -84,11 +110,12 @@ dependencies {
   implementation(libs.androidx.lifecycle.runtime.compose)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.lifecycle.viewmodel.compose)
-  implementation(libs.androidx.navigation.compose)
-  implementation(libs.google.gson)
+  // implementation(libs.androidx.navigation.compose)
   implementation(libs.androidx.room.ktx)
   implementation(libs.androidx.room.runtime)
   // implementation(libs.coil.compose)
+  implementation(libs.google.gson)
+  implementation(libs.mediapipe.tasks.genai)
   implementation(libs.converter.moshi)
   implementation(libs.firebase.ai)
   // Uncomment to use Firestore:
@@ -123,5 +150,5 @@ dependencies {
   debugImplementation(libs.androidx.compose.ui.test.manifest)
   debugImplementation(libs.androidx.compose.ui.tooling)
   "ksp"(libs.androidx.room.compiler)
-  // "ksp"(libs.moshi.kotlin.codegen)
+  "ksp"(libs.moshi.kotlin.codegen)
 }

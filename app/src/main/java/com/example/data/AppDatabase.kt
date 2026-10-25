@@ -12,12 +12,7 @@ import com.example.data.entity.DebtLoanEntity
 import com.example.data.entity.PriceTrackerEntity
 import com.example.data.entity.TransactionEntity
 import com.example.data.entity.WishlistEntity
-import com.example.data.model.DebtTypes
-import com.example.data.model.TransactionTypes
-import com.example.data.model.WalletSources
-import com.example.data.model.WishlistCategories
-import com.example.data.model.WishlistPriorities
-import com.example.util.DateTimeUtils
+import com.example.data.model.DefaultExpenseCategories
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -35,7 +30,6 @@ import kotlinx.coroutines.launch
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
-
     abstract fun financeDao(): FinanceDao
 
     companion object {
@@ -71,7 +65,64 @@ abstract class AppDatabase : RoomDatabase() {
         }
 
         suspend fun populateInitialData(dao: FinanceDao) {
-            // Bersih tanpa data permanen dari sistem, user bebas membuat dan mengelola pos anggaran sendiri
+            // Pos amplop anggaran kategori dasar (bersih tanpa transaksi palsu)
+            val defaultBudgets = listOf(
+                BudgetCategoryEntity(
+                    categoryName = DefaultExpenseCategories.DAPUR,
+                    monthlyLimit = 0L,
+                    iconEmoji = "🥬",
+                    colorHex = "#2E7D32"
+                ),
+                BudgetCategoryEntity(
+                    categoryName = DefaultExpenseCategories.BULANAN,
+                    monthlyLimit = 0L,
+                    iconEmoji = "🛒",
+                    colorHex = "#00838F"
+                ),
+                BudgetCategoryEntity(
+                    categoryName = DefaultExpenseCategories.ANAK,
+                    monthlyLimit = 0L,
+                    iconEmoji = "🎒",
+                    colorHex = "#F57C00"
+                ),
+                BudgetCategoryEntity(
+                    categoryName = DefaultExpenseCategories.LISTRIK,
+                    monthlyLimit = 0L,
+                    iconEmoji = "💡",
+                    colorHex = "#FBC02D"
+                ),
+                BudgetCategoryEntity(
+                    categoryName = DefaultExpenseCategories.RUMAH,
+                    monthlyLimit = 0L,
+                    iconEmoji = "🏠",
+                    colorHex = "#5E35B1"
+                ),
+                BudgetCategoryEntity(
+                    categoryName = DefaultExpenseCategories.KESEHATAN,
+                    monthlyLimit = 0L,
+                    iconEmoji = "💊",
+                    colorHex = "#D81B60"
+                ),
+                BudgetCategoryEntity(
+                    categoryName = DefaultExpenseCategories.SEDEKAH,
+                    monthlyLimit = 0L,
+                    iconEmoji = "🤲",
+                    colorHex = "#43A047"
+                ),
+                BudgetCategoryEntity(
+                    categoryName = DefaultExpenseCategories.HIBURAN,
+                    monthlyLimit = 0L,
+                    iconEmoji = "☕",
+                    colorHex = "#8D6E63"
+                ),
+                BudgetCategoryEntity(
+                    categoryName = DefaultExpenseCategories.LAINNYA,
+                    monthlyLimit = 0L,
+                    iconEmoji = "📝",
+                    colorHex = "#546E7A"
+                )
+            )
+            dao.insertBudgetCategories(defaultBudgets)
         }
     }
 }

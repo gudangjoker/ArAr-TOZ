@@ -15,10 +15,10 @@ import com.google.gson.GsonBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
 class FinanceRepository(private val dao: FinanceDao) {
-
     private val gson: Gson = GsonBuilder().setPrettyPrinting().create()
 
     // All transactions
@@ -41,16 +41,17 @@ class FinanceRepository(private val dao: FinanceDao) {
 
     // Budget Envelopes combining categories with current month spending
     fun getBudgetEnvelopesThisMonth(): Flow<List<BudgetEnvelopeItem>> {
-        val startOfMonth = DateTimeUtils.getStartOfMonth()
-        val endOfMonth = DateTimeUtils.getEndOfMonth()
-
+        val now = DateTimeUtils.getCurrentJakartaTimeMillis()
+        val startOfMonth = DateTimeUtils.getStartOfMonth(now)
+        val endOfMonth = DateTimeUtils.getEndOfMonth(now)
         return combine(
             dao.getAllBudgetCategories(),
             dao.getCategoryExpenseSummaryBetween(startOfMonth, endOfMonth)
         ) { categories, summaries ->
             val spendingMap = summaries.associate { it.category to it.totalSpent }
+            val existingCategoryNames = categories.map { it.categoryName }.toSet()
 
-            categories.map { cat ->
+            val envelopeList = categories.map { cat ->
                 val spent = spendingMap[cat.categoryName] ?: 0L
                 BudgetEnvelopeItem(
                     id = cat.id,
@@ -60,7 +61,26 @@ class FinanceRepository(private val dao: FinanceDao) {
                     iconEmoji = cat.iconEmoji,
                     colorHex = cat.colorHex
                 )
+            }.toMutableList()
+
+            // Include unbudgeted categories from transactions
+            var unbudgetedId = -100L
+            summaries.forEach { summary ->
+                if (summary.category !in existingCategoryNames && summary.totalSpent > 0) {
+                    envelopeList.add(
+                        BudgetEnvelopeItem(
+                            id = unbudgetedId--,
+                            categoryName = summary.category,
+                            monthlyLimit = 0L,
+                            spentAmount = summary.totalSpent,
+                            iconEmoji = com.example.data.model.DefaultExpenseCategories.getIconEmoji(summary.category),
+                            colorHex = "#78909C"
+                        )
+                    )
+                }
             }
+
+            envelopeList
         }
     }
 
@@ -77,7 +97,6 @@ class FinanceRepository(private val dao: FinanceDao) {
     val allPriceTracks: Flow<List<PriceTrackerEntity>> = dao.getAllPriceTracks()
 
     // === WRITE ACTIONS ===
-
     suspend fun insertTransaction(transaction: TransactionEntity): Long =
         withContext(Dispatchers.IO) {
             dao.insertTransaction(transaction)
@@ -91,11 +110,6 @@ class FinanceRepository(private val dao: FinanceDao) {
     suspend fun deleteTransaction(transaction: TransactionEntity) =
         withContext(Dispatchers.IO) {
             dao.deleteTransaction(transaction)
-        }
-
-    suspend fun updateTransactionCategory(oldCategory: String, newCategory: String) =
-        withContext(Dispatchers.IO) {
-            dao.updateTransactionCategory(oldCategory, newCategory)
         }
 
     suspend fun insertBudgetCategory(category: BudgetCategoryEntity): Long =
@@ -172,8 +186,32 @@ class FinanceRepository(private val dao: FinanceDao) {
         dao.deletePriceTrack(track)
     }
 
-    // === BACKUP & RESTORE ===
+    // Quick helper for assistant summaries
+    suspend fun getQuickFinancialSummary(): Map<String, Any> = withContext(Dispatchers.IO) {
+        val startDay = DateTimeUtils.getStartOfDay()
+        val endDay = DateTimeUtils.getEndOfDay()
+        val startMonth = DateTimeUtils.getStartOfMonth()
+        val endMonth = DateTimeUtils.getEndOfMonth()
 
+        val netBalance = dao.getTotalNetBalance().first()
+        val todayExpense = dao.getTotalExpenseBetween(startDay, endDay).first()
+        val monthExpense = dao.getTotalExpenseBetween(startMonth, endMonth).first()
+        val monthIncome = dao.getTotalIncomeBetween(startMonth, endMonth).first()
+        val bills = dao.getAllBillsSnapshot()
+        val currentMonthKey = DateTimeUtils.getCurrentMonthYearKey()
+        val unpaidBills = bills.filter { it.lastPaidMonthYear != currentMonthKey }
+
+        mapOf(
+            "netBalance" to netBalance,
+            "todayExpense" to todayExpense,
+            "monthExpense" to monthExpense,
+            "monthIncome" to monthIncome,
+            "unpaidBillsCount" to unpaidBills.size,
+            "unpaidBills" to unpaidBills.map { mapOf("title" to it.title, "amount" to it.estimatedAmount, "dueDay" to it.dueDayOfMonth) }
+        )
+    }
+
+    // === BACKUP & RESTORE ===
     suspend fun exportDataToJson(): String = withContext(Dispatchers.IO) {
         val transactions = dao.getAllTransactionsSnapshot()
         val budgetCategories = dao.getAllBudgetCategoriesSnapshot()
@@ -202,7 +240,6 @@ class FinanceRepository(private val dao: FinanceDao) {
             val backup = gson.fromJson(jsonContent, BackupData::class.java)
                 ?: return@withContext Result.failure(Exception("Format JSON kosong atau tidak valid"))
 
-            // Replace or merge data cleanly
             if (backup.transactions.isNotEmpty()) {
                 dao.clearTransactions()
                 dao.insertAllTransactions(backup.transactions)

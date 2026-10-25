@@ -24,13 +24,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -45,13 +42,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import com.example.R
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.R
 import com.example.data.entity.TransactionEntity
+import com.example.data.model.DefaultExpenseCategories
 import com.example.data.model.WalletSources
 import com.example.ui.components.BudgetEnvelopeCard
 import com.example.ui.components.TransactionCard
@@ -72,7 +70,7 @@ fun DashboardScreen(
     onDeleteTransaction: (TransactionEntity) -> Unit,
     onEditBudgetLimit: (categoryName: String, currentLimit: Long, iconEmoji: String) -> Unit,
     onNavigateToEnvelopes: () -> Unit,
-    onNavigateToSiCici: () -> Unit = {},
+    onShareRekapToWhatsApp: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val now = DateTimeUtils.getCurrentJakartaTimeMillis()
@@ -90,14 +88,13 @@ fun DashboardScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // ArAr Cicis Brand Header
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.ic_arar_cicis_logo),
-                        contentDescription = "Logo ArAr Cicis",
+                        painter = painterResource(id = R.drawable.ic_arar_toz_logo),
+                        contentDescription = "Logo ArAr TOZ",
                         modifier = Modifier
                             .size(38.dp)
                             .clip(RoundedCornerShape(10.dp))
@@ -112,7 +109,7 @@ fun DashboardScreen(
                                 color = EmeraldPrimary
                             )
                             Text(
-                                text = "Cicis",
+                                text = "TOZ",
                                 fontWeight = FontWeight.Black,
                                 fontSize = 17.sp,
                                 color = Color(0xFFE5A22D)
@@ -133,7 +130,7 @@ fun DashboardScreen(
                 ) {
                     Column {
                         Text(
-                            text = "Halo Bunda ❤️",
+                            text = "Halo Bunda ✨",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -175,76 +172,6 @@ fun DashboardScreen(
             }
         }
 
-        // Si Cici (Gemma AI) Quick Access Banner
-        item {
-            Card(
-                onClick = onNavigateToSiCici,
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = EmeraldPrimary.copy(alpha = 0.08f)
-                ),
-                border = androidx.compose.foundation.BorderStroke(1.dp, EmeraldPrimary.copy(alpha = 0.22f)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("banner_ask_sicici")
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.ic_arar_cicis_logo),
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(42.dp)
-                                .clip(CircleShape)
-                        )
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                Text(
-                                    text = "Tanya Si Cici",
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 15.sp,
-                                    color = EmeraldPrimary
-                                )
-                                Surface(
-                                    color = Color(0xFFE5A22D).copy(alpha = 0.15f),
-                                    shape = RoundedCornerShape(6.dp)
-                                ) {
-                                    Text(
-                                        text = "✨ Gemma AI",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp,
-                                        color = Color(0xFFC7810A),
-                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
-                                    )
-                                }
-                            }
-                            Text(
-                                text = "Bicara atau ketik untuk catat kas & cek saldo otomatis",
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    Icon(
-                        imageVector = Icons.Default.AutoAwesome,
-                        contentDescription = "Buka Si Cici",
-                        tint = EmeraldPrimary,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-            }
-        }
-
         // 2. Summary Hero Card: Saldo Bersih & Bulanan
         item {
             Card(
@@ -263,7 +190,6 @@ fun DashboardScreen(
                         .padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Top: Label & Total Saldo
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -284,7 +210,6 @@ fun DashboardScreen(
                                 color = MaterialTheme.colorScheme.surface
                             )
                         }
-
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
@@ -301,7 +226,6 @@ fun DashboardScreen(
                         }
                     }
 
-                    // Divider line
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -309,12 +233,10 @@ fun DashboardScreen(
                             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.25f))
                     )
 
-                    // Bottom: Today Expense, Month Expense, Month Income
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // Pengeluaran Hari Ini
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
@@ -338,7 +260,6 @@ fun DashboardScreen(
                             )
                         }
 
-                        // Pemasukan Bulan Ini
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
@@ -362,7 +283,6 @@ fun DashboardScreen(
                             )
                         }
 
-                        // Pengeluaran Bulan Ini
                         Column(horizontalAlignment = Alignment.End) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
@@ -390,7 +310,76 @@ fun DashboardScreen(
             }
         }
 
-        // 3. Pos Amplop Anggaran Belanja (Top Envelopes Preview)
+        // 2B. Share Rekap
+        item {
+            Card(
+                onClick = onShareRekapToWhatsApp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("share_rekap_card"),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = GreenBudgetSafe.copy(alpha = 0.12f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = GreenBudgetSafe,
+                            modifier = Modifier.size(38.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Share,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Kirim Rekap Kas ke Pasangan 📲",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "Format teks rapi via WhatsApp (saldo, belanja hari ini, amplop & tagihan)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = GreenBudgetSafe
+                    ) {
+                        Text(
+                            text = "Kirim",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // 3. Top Envelopes Preview
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(
@@ -410,13 +399,11 @@ fun DashboardScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-
                     TextButton(onClick = onNavigateToEnvelopes) {
                         Text("Lihat Semua", color = EmeraldPrimary, fontWeight = FontWeight.Bold)
                     }
                 }
 
-                // Show top 3 envelopes
                 val topEnvelopes = uiState.budgetEnvelopes.take(3)
                 if (topEnvelopes.isEmpty()) {
                     Card(
@@ -445,7 +432,7 @@ fun DashboardScreen(
             }
         }
 
-        // 4. Filter Bar (Time, Category, Wallet)
+        // 4. Filter Bar
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(
@@ -454,11 +441,10 @@ fun DashboardScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Riwayat Catatan Belanja 📋",
+                        text = "Riwayat Catatan Belanja 🧾",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
-
                     if (uiState.selectedCategory != null || uiState.selectedWallet != null) {
                         TextButton(
                             onClick = {
@@ -473,7 +459,6 @@ fun DashboardScreen(
                     }
                 }
 
-                // Time Filter Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -501,40 +486,32 @@ fun DashboardScreen(
                     }
                 }
 
-                // Category & Wallet Filters (horizontal chips)
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    // All categories
                     FilterChip(
                         selected = uiState.selectedCategory == null,
                         onClick = { onCategoryFilterChange(null) },
                         label = { Text("Semua Pos", fontSize = 11.sp) }
                     )
-
-                    val distinctCategories = uiState.budgetCategories
-                        .map { it.categoryName to it.iconEmoji }
-                        .distinctBy { it.first }
-
-                    distinctCategories.forEach { (cat, emoji) ->
+                    DefaultExpenseCategories.ALL.forEach { cat ->
                         val isSelected = uiState.selectedCategory == cat
+                        val emoji = DefaultExpenseCategories.getIconEmoji(cat)
                         FilterChip(
                             selected = isSelected,
                             onClick = { onCategoryFilterChange(if (isSelected) null else cat) },
                             label = { Text("$emoji $cat", fontSize = 11.sp) }
                         )
                     }
-
-                    // Wallets
                     WalletSources.ALL.forEach { wallet ->
                         val isSelected = uiState.selectedWallet == wallet
                         FilterChip(
                             selected = isSelected,
                             onClick = { onWalletFilterChange(if (isSelected) null else wallet) },
-                            label = { Text("👛 $wallet", fontSize = 11.sp) },
+                            label = { Text("💳 $wallet", fontSize = 11.sp) },
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer
                             )
@@ -561,14 +538,14 @@ fun DashboardScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(text = "🛒", fontSize = 42.sp)
+                        Text(text = "🍃", fontSize = 42.sp)
                         Text(
                             text = "Belum ada transaksi di filter ini",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Ketuk tombol '+ Catat' di bawah untuk mencatat pengeluaran dapur atau pemasukan Anda.",
+                            text = "Ketuk tombol '+ Catat' di bawah atau panggil Asisten Si Cici untuk mencatat pengeluaran dapur Anda.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

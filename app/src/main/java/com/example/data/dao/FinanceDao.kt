@@ -17,9 +17,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FinanceDao {
-
     // === TRANSACTIONS ===
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTransaction(transaction: TransactionEntity): Long
 
@@ -28,9 +26,6 @@ interface FinanceDao {
 
     @Delete
     suspend fun deleteTransaction(transaction: TransactionEntity)
-
-    @Query("UPDATE transactions SET category = :newCategory WHERE category = :oldCategory")
-    suspend fun updateTransactionCategory(oldCategory: String, newCategory: String)
 
     @Query("SELECT * FROM transactions ORDER BY dateTimestamp DESC")
     fun getAllTransactions(): Flow<List<TransactionEntity>>
@@ -60,7 +55,6 @@ interface FinanceDao {
     fun getCategoryExpenseSummaryBetween(startTime: Long, endTime: Long): Flow<List<CategoryExpenseSummary>>
 
     // === BUDGET CATEGORIES ===
-
     @Query("SELECT * FROM budget_categories ORDER BY id ASC")
     fun getAllBudgetCategories(): Flow<List<BudgetCategoryEntity>>
 
@@ -80,7 +74,6 @@ interface FinanceDao {
     suspend fun deleteBudgetCategoryById(id: Long)
 
     // === WISHLIST ===
-
     @Query("SELECT * FROM wishlist ORDER BY isFulfilled ASC, priority DESC, createdAt DESC")
     fun getAllWishlist(): Flow<List<WishlistEntity>>
 
@@ -100,7 +93,6 @@ interface FinanceDao {
     suspend fun allocateSavingsToWishlist(id: Long, amount: Long)
 
     // === BILLS (TAGIHAN RUTIN) ===
-
     @Query("SELECT * FROM bills ORDER BY dueDayOfMonth ASC, title ASC")
     fun getAllBills(): Flow<List<BillEntity>>
 
@@ -117,7 +109,6 @@ interface FinanceDao {
     suspend fun deleteBill(bill: BillEntity)
 
     // === DEBT & LOAN (HUTANG PIUTANG) ===
-
     @Query("SELECT * FROM debt_loans ORDER BY isSettled ASC, createdAt DESC")
     fun getAllDebtsAndLoans(): Flow<List<DebtLoanEntity>>
 
@@ -134,7 +125,6 @@ interface FinanceDao {
     suspend fun deleteDebtLoan(debtLoan: DebtLoanEntity)
 
     // === PRICE TRACKER (PANTAU HARGA PASAR) ===
-
     @Query("SELECT * FROM price_tracker ORDER BY itemName ASC")
     fun getAllPriceTracks(): Flow<List<PriceTrackerEntity>>
 
@@ -151,7 +141,6 @@ interface FinanceDao {
     suspend fun deletePriceTrack(track: PriceTrackerEntity)
 
     // === RAW BACKUP / RESTORE SUPPORT ===
-
     @Query("SELECT * FROM transactions")
     suspend fun getAllTransactionsSnapshot(): List<TransactionEntity>
 

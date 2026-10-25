@@ -82,7 +82,7 @@ fun WishlistScreen(
     onDeletePriceTrack: (PriceTrackerEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var screenTab by remember { mutableIntStateOf(0) } // 0 = Daftar Belanja, 1 = Pantau Harga Pasar
+    var screenTab by remember { mutableIntStateOf(0) }
     var activeFilter by remember { mutableStateOf(ShoppingViewFilter.ALL) }
 
     Column(
@@ -90,7 +90,6 @@ fun WishlistScreen(
             .fillMaxSize()
             .testTag("wishlist_screen")
     ) {
-        // Top Tab Selector
         TabRow(
             selectedTabIndex = screenTab,
             containerColor = MaterialTheme.colorScheme.surface,
@@ -124,7 +123,6 @@ fun WishlistScreen(
         }
 
         if (screenTab == 0) {
-            // === TAB 0: DAFTAR BELANJA & WISHLIST ===
             val filteredItems = uiState.wishlistItems.filter { item ->
                 when (activeFilter) {
                     ShoppingViewFilter.ALL -> true
@@ -145,7 +143,6 @@ fun WishlistScreen(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Summary Card
                 item {
                     Card(
                         modifier = Modifier
@@ -180,7 +177,6 @@ fun WishlistScreen(
                                         fontSize = 13.sp
                                     )
                                 }
-
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
                                     color = MaterialTheme.colorScheme.primaryContainer
@@ -194,7 +190,6 @@ fun WishlistScreen(
                                     )
                                 }
                             }
-
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
@@ -212,7 +207,6 @@ fun WishlistScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
-
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(
                                         text = "Total Terbeli Real:",
@@ -231,7 +225,6 @@ fun WishlistScreen(
                     }
                 }
 
-                // Add Item Button
                 item {
                     Button(
                         onClick = onAddNewWishlist,
@@ -248,7 +241,6 @@ fun WishlistScreen(
                     }
                 }
 
-                // Filter Chips
                 item {
                     Row(
                         modifier = Modifier
@@ -268,7 +260,6 @@ fun WishlistScreen(
                     }
                 }
 
-                // Items List
                 if (filteredItems.isEmpty()) {
                     item {
                         Card(
@@ -312,13 +303,11 @@ fun WishlistScreen(
                 }
             }
         } else {
-            // === TAB 1: PANTAU HARGA PASAR ===
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Info Card
                 item {
                     Card(
                         modifier = Modifier
@@ -348,7 +337,6 @@ fun WishlistScreen(
                     }
                 }
 
-                // Add Price Track Button
                 item {
                     Button(
                         onClick = onAddPriceTrackClick,
@@ -440,7 +428,6 @@ fun PriceTrackCardItem(
                         )
                     }
                 }
-
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onEditClick, modifier = Modifier.size(30.dp)) {
                         Icon(imageVector = Icons.Outlined.Edit, contentDescription = "Edit", tint = EmeraldPrimary, modifier = Modifier.size(16.dp))
@@ -471,7 +458,6 @@ fun PriceTrackCardItem(
                         )
                     }
                 }
-
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = trendColor.copy(alpha = 0.12f)

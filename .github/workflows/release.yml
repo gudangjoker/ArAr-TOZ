@@ -1,0 +1,111 @@
+name: Build & Release ArAr TOZ APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag rilis (contoh: v1.0.1)'
+        required: false
+        default: 'v1.0.1'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build Signed Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine Release Tag
+        id: vars
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.tag_name }}" ]; then
+            TAG="${{ inputs.tag_name }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Using Release Tag: ${TAG}"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Set up Gradle 9.3.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.3.1'
+
+      - name: Make Gradlew Executable
+        run: chmod +x gradlew
+
+      - name: Build Release APK with Permanent Signature
+        run: |
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Package & Prepare Release Artifacts
+        run: |
+          mkdir -p release-artifacts
+          TAG="${{ steps.vars.outputs.tag }}"
+          
+          # Find generated APK
+          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            echo "::error::Release APK not found in app/build/outputs/apk/release!"
+            exit 1
+          fi
+          
+          echo "Found APK: $APK_PATH"
+          RELEASE_APK_NAME="ArAr-TOZ-${TAG}.apk"
+          cp "$APK_PATH" "release-artifacts/${RELEASE_APK_NAME}"
+          
+          # Generate SHA-256 Checksum for verification
+          cd release-artifacts
+          sha256sum "${RELEASE_APK_NAME}" > "${RELEASE_APK_NAME}.sha256"
+          echo "Generated Checksum:"
+          cat "${RELEASE_APK_NAME}.sha256"
+          ls -lah
+
+      - name: Create GitHub Release & Upload APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.vars.outputs.tag }}
+          name: "ArAr TOZ ${{ steps.vars.outputs.tag }}"
+          draft: false
+          prerelease: false
+          files: |
+            release-artifacts/ArAr-TOZ-*.apk
+            release-artifacts/*.sha256
+          body: |
+            ## 🚀 ArAr TOZ ${{ steps.vars.outputs.tag }} Release
+            
+            Aplikasi pencatatan keuangan dan anggaran belanja rumah tangga cerdas keluarga berbasis **Offline-First Android**.
+            
+            ---
+            
+            ### 📱 Informasi Rilis:
+            - **Nama Aplikasi**: **ArAr TOZ**
+            - **Versi Rilis**: `1.0.1` (`${{ steps.vars.outputs.tag }}`)
+            - **Package ID**: `com.aistudio.arartoz.jvsd`
+            - **Target Android**: Android 7.0 (API 24) s/d Android 16 (API 36)
+            - **Tanda Tangan Digital**: Ditandatangani dengan kunci rilis permanen RSA 2048-bit (Berlaku s/d tahun 2054)
+            
+            ---
+            
+            ### ✨ Pembaruan & Fitur Utama:
+            - 🎨 **Branding Baru**: Resmi berganti nama menjadi **ArAr TOZ** lengkap dengan ikon launcher adaptif antialias tanpa sudut putih.
+            - 🧮 **Kalkulator Cepat & Bebas Bentrok**: Evaluator ekspresi matematika real-time mendukung tanda kurung, pemisah ribuan titik/koma, dan nilai desimal tanpa pembulatan keliru.
+            - ✉️ **Sinkronisasi Pos Amplop Anggaran**: Kuota kategori belanja bulanan selalu sinkron real-time dengan transaksi pengeluaran.
+            - 📊 **Deteksi Dini Defisit**: Peringatan visual otomatis apabila belanja keluarga melebihi pemasukan bulan berjalan.
+            - 🤖 **Offline Smart Assistant**: Asisten pintar offline untuk input kas & cek ringkasan saldo lokal 100% di HP.

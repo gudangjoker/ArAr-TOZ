@@ -1,7 +1,5 @@
 package com.example.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,11 +19,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Handshake
 import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Payment
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -50,7 +46,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -60,8 +55,6 @@ import androidx.compose.ui.unit.sp
 import com.example.data.entity.BillEntity
 import com.example.data.entity.DebtLoanEntity
 import com.example.data.model.DebtTypes
-import com.example.data.model.DefaultExpenseCategories
-import com.example.ui.theme.AmberWarning
 import com.example.ui.theme.CoralAccent
 import com.example.ui.theme.EmeraldPrimary
 import com.example.ui.theme.GreenBudgetSafe
@@ -83,7 +76,7 @@ fun BillsAndDebtsScreen(
     onDeleteDebt: (DebtLoanEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var selectedTab by remember { mutableIntStateOf(0) } // 0 = Tagihan Rutin, 1 = Hutang Piutang
+    var selectedTab by remember { mutableIntStateOf(0) }
     val currentMonthKey = DateTimeUtils.getCurrentMonthYearKey()
 
     Column(
@@ -91,7 +84,6 @@ fun BillsAndDebtsScreen(
             .fillMaxSize()
             .testTag("bills_and_debts_screen")
     ) {
-        // Tab Header
         TabRow(
             selectedTabIndex = selectedTab,
             containerColor = MaterialTheme.colorScheme.surface,
@@ -125,7 +117,6 @@ fun BillsAndDebtsScreen(
         }
 
         if (selectedTab == 0) {
-            // === TAB 1: TAGIHAN RUTIN ===
             val totalBillsEstimated = uiState.bills.sumOf { it.estimatedAmount }
             val paidBillsCount = uiState.bills.count { it.lastPaidMonthYear == currentMonthKey }
             val totalBillsCount = uiState.bills.size
@@ -137,7 +128,6 @@ fun BillsAndDebtsScreen(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Header Summary Card
                 item {
                     Card(
                         modifier = Modifier
@@ -178,7 +168,6 @@ fun BillsAndDebtsScreen(
                                     )
                                 }
                             }
-
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
@@ -201,7 +190,6 @@ fun BillsAndDebtsScreen(
                     }
                 }
 
-                // Add Bill Button
                 item {
                     Button(
                         onClick = onAddBillClick,
@@ -247,11 +235,9 @@ fun BillsAndDebtsScreen(
                 }
             }
         } else {
-            // === TAB 2: HUTANG & PIUTANG ===
             var debtFilter by remember { mutableStateOf("SEMUA") }
             val payableList = uiState.debtLoans.filter { it.type == DebtTypes.PAYABLE }
             val receivableList = uiState.debtLoans.filter { it.type == DebtTypes.RECEIVABLE }
-
             val totalHutangSaya = payableList.filter { !it.isSettled }.sumOf { (it.totalAmount - it.paidAmount).coerceAtLeast(0L) }
             val totalPiutangSaya = receivableList.filter { !it.isSettled }.sumOf { (it.totalAmount - it.paidAmount).coerceAtLeast(0L) }
 
@@ -269,7 +255,6 @@ fun BillsAndDebtsScreen(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Summary Card
                 item {
                     Card(
                         modifier = Modifier
@@ -286,7 +271,6 @@ fun BillsAndDebtsScreen(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Text("Ringkasan Kewajiban & Piutang", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
@@ -314,7 +298,6 @@ fun BillsAndDebtsScreen(
                     }
                 }
 
-                // Add Debt/Loan Button
                 item {
                     Button(
                         onClick = onAddDebtClick,
@@ -331,7 +314,6 @@ fun BillsAndDebtsScreen(
                     }
                 }
 
-                // Filter Chips
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -412,24 +394,19 @@ fun BillCardItem(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Checkbox status lunas
                 Checkbox(
                     checked = isPaidThisMonth,
                     onCheckedChange = { onToggleStatus() },
                     colors = CheckboxDefaults.colors(checkedColor = GreenBudgetSafe)
                 )
-
                 Spacer(modifier = Modifier.width(4.dp))
-
                 Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = bill.title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            textDecoration = if (isPaidThisMonth) TextDecoration.LineThrough else TextDecoration.None
-                        )
-                    }
+                    Text(
+                        text = bill.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        textDecoration = if (isPaidThisMonth) TextDecoration.LineThrough else TextDecoration.None
+                    )
                     Text(
                         text = "Jatuh tempo: Setiap tanggal ${bill.dueDayOfMonth} • ${bill.category}",
                         style = MaterialTheme.typography.bodySmall,
@@ -443,7 +420,6 @@ fun BillCardItem(
                         )
                     }
                 }
-
                 IconButton(onClick = onDelete, modifier = Modifier.size(30.dp)) {
                     Icon(
                         imageVector = Icons.Outlined.Delete,
@@ -454,7 +430,6 @@ fun BillCardItem(
                 }
             }
 
-            // Price & Action Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -469,7 +444,6 @@ fun BillCardItem(
                         color = if (isPaidThisMonth) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
                     )
                 }
-
                 if (!isPaidThisMonth) {
                     Button(
                         onClick = onPayClick,
@@ -540,9 +514,7 @@ fun DebtLoanCardItem(
                     onCheckedChange = { onToggleSettled() },
                     colors = CheckboxDefaults.colors(checkedColor = GreenBudgetSafe)
                 )
-
                 Spacer(modifier = Modifier.width(4.dp))
-
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
@@ -565,7 +537,6 @@ fun DebtLoanCardItem(
                             )
                         }
                     }
-
                     if (item.dueDateString.isNotBlank()) {
                         Text(
                             text = "Jatuh tempo: ${item.dueDateString}",
@@ -581,7 +552,6 @@ fun DebtLoanCardItem(
                         )
                     }
                 }
-
                 IconButton(onClick = onDelete, modifier = Modifier.size(30.dp)) {
                     Icon(
                         imageVector = Icons.Outlined.Delete,
@@ -592,7 +562,6 @@ fun DebtLoanCardItem(
                 }
             }
 
-            // Progress bar
             LinearProgressIndicator(
                 progress = { progress },
                 modifier = Modifier
@@ -622,7 +591,6 @@ fun DebtLoanCardItem(
                         color = if (item.isSettled) GreenBudgetSafe else if (isPayable) CoralAccent else EmeraldPrimary
                     )
                 }
-
                 if (!item.isSettled) {
                     Button(
                         onClick = onPayClick,
@@ -640,7 +608,7 @@ fun DebtLoanCardItem(
                         color = GreenBudgetSafe.copy(alpha = 0.15f)
                     ) {
                         Text(
-                            text = "Lunas ✓",
+                            text = "Lunas ✨",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = GreenBudgetSafe,

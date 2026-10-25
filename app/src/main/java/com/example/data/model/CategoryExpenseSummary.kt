@@ -30,6 +30,7 @@ data class BudgetEnvelopeItem(
 
     val status: BudgetEnvelopeStatus
         get() = when {
+            monthlyLimit <= 0L -> if (spentAmount > 0L) BudgetEnvelopeStatus.YELLOW else BudgetEnvelopeStatus.GREEN
             percentage < 0.70f -> BudgetEnvelopeStatus.GREEN
             percentage <= 0.90f -> BudgetEnvelopeStatus.YELLOW
             else -> BudgetEnvelopeStatus.RED

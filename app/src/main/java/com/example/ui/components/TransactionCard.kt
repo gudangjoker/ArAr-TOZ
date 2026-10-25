@@ -49,7 +49,6 @@ fun TransactionCard(
     val amountPrefix = if (isExpense) "- " else "+ "
     val amountColor = if (isExpense) CoralAccent else EmeraldPrimary
     val emoji = DefaultExpenseCategories.getIconEmoji(transaction.category)
-
     val walletBadge = when (transaction.walletSource) {
         WalletSources.CASH -> "💵 Tunai"
         WalletSources.BANK -> "🏦 Bank"

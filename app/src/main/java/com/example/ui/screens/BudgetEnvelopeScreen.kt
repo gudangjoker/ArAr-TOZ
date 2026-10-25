@@ -57,10 +57,9 @@ fun BudgetEnvelopeScreen(
     uiState: DashboardUiState,
     onEditBudgetLimit: (categoryName: String, currentLimit: Long, iconEmoji: String) -> Unit,
     onAddNewCategory: () -> Unit,
-    onShareRekapToWhatsApp: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    var selectedTab by remember { mutableIntStateOf(0) } // 0 = Pos Amplop, 1 = Grafik & Analisis
+    var selectedTab by remember { mutableIntStateOf(0) }
 
     Column(
         modifier = modifier
@@ -100,10 +99,7 @@ fun BudgetEnvelopeScreen(
         }
 
         if (selectedTab == 1) {
-            AnalyticsScreen(
-                uiState = uiState,
-                onShareRekapToWhatsApp = onShareRekapToWhatsApp
-            )
+            AnalyticsScreen(uiState = uiState)
         } else {
             val totalBudget = uiState.budgetEnvelopes.sumOf { it.monthlyLimit }
             val totalSpent = uiState.budgetEnvelopes.sumOf { it.spentAmount }
@@ -114,218 +110,175 @@ fun BudgetEnvelopeScreen(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 96.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-        // 1. Header Title & Subtitle
-        item {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "Amplop Anggaran Bulanan ✉️",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Bulan ${DateTimeUtils.formatCurrentMonth()} (WIB)",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        // 2. Overview Card: Total Kuota & Total Belanja
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("envelope_overview_card"),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                item {
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = "Ringkasan Seluruh Amplop",
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                        Surface(
-                            shape = CircleShape,
-                            color = when {
-                                overallPercentage < 70 -> GreenBudgetSafe
-                                overallPercentage <= 90 -> AmberWarning
-                                else -> RedBudgetAlert
-                            }
-                        ) {
-                            Text(
-                                text = "$overallPercentage% Terpakai",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.surface,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column {
-                            Text(
-                                text = "Total Kuota:",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = CurrencyFormatter.formatRupiah(totalBudget),
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = "Total Terpakai:",
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = CurrencyFormatter.formatRupiah(totalSpent),
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // 3. Status Legend Bar
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .clip(CircleShape)
-                                .background(GreenBudgetSafe)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "Aman (<70%)", fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                    }
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .clip(CircleShape)
-                                .background(AmberWarning)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "Waspada (70-90%)", fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                    }
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .clip(CircleShape)
-                                .background(RedBudgetAlert)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "Kritis (>90%)", fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                    }
-                }
-            }
-        }
-
-        // 4. Action: Add New Budget Envelope Button
-        item {
-            Button(
-                onClick = onAddNewCategory,
-                colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-                    .testTag("add_new_budget_envelope_btn")
-            ) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Tambah Pos Amplop Baru", fontWeight = FontWeight.Bold)
-            }
-        }
-
-        // 5. Envelope Items List or Empty State
-        if (uiState.budgetEnvelopes.isEmpty()) {
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("empty_envelopes_card"),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Text(text = "✉️", fontSize = 38.sp)
-                        Text(
-                            text = "Belum Ada Pos Amplop",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
+                            text = "Amplop Anggaran Bulanan ✉️",
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Pos anggaran belanja tidak disediakan kaku oleh sistem. Bunda bebas membuat sendiri pos anggaran sesuai kebutuhan rumah tangga (contoh: Belanja Dapur, Uang Sekolah, Bensin, Skincare, dll). Ketuk tombol 'Tambah Pos Amplop Baru' di atas untuk membuat pos pertama Bunda!",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            text = "Bulan ${DateTimeUtils.formatCurrentMonth()} (WIB)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
-            }
-        } else {
-            items(uiState.budgetEnvelopes, key = { it.id }) { env ->
-                BudgetEnvelopeCard(
-                    envelope = env,
-                    onEditLimit = {
-                        onEditBudgetLimit(env.categoryName, env.monthlyLimit, env.iconEmoji)
+
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("envelope_overview_card"),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(18.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Ringkasan Seluruh Amplop",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Surface(
+                                    shape = CircleShape,
+                                    color = when {
+                                        totalBudget <= 0L -> AmberWarning
+                                        overallPercentage < 70 -> GreenBudgetSafe
+                                        overallPercentage <= 90 -> AmberWarning
+                                        else -> RedBudgetAlert
+                                    }
+                                ) {
+                                    Text(
+                                        text = if (totalBudget > 0L) "$overallPercentage% Terpakai" else "Belum Atur Kuota",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.surface,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "Total Kuota:",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = CurrencyFormatter.formatRupiah(totalBudget),
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        text = "Total Terpakai:",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = CurrencyFormatter.formatRupiah(totalSpent),
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
                     }
-                )
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceAround,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(GreenBudgetSafe)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(text = "Aman (<70%)", fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(AmberWarning)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(text = "Waspada (70-90%)", fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(RedBudgetAlert)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(text = "Kritis (>90%)", fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    Button(
+                        onClick = onAddNewCategory,
+                        colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("add_new_budget_envelope_btn")
+                    ) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Tambah Pos Amplop Baru", fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                items(uiState.budgetEnvelopes, key = { it.id }) { env ->
+                    BudgetEnvelopeCard(
+                        envelope = env,
+                        onEditLimit = {
+                            onEditBudgetLimit(env.categoryName, env.monthlyLimit, env.iconEmoji)
+                        }
+                    )
+                }
             }
         }
     }
-}
-}
 }

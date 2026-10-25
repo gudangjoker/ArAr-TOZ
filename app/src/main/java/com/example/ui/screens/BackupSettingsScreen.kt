@@ -1,8 +1,12 @@
 package com.example.ui.screens
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -22,7 +26,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.DeleteForever
@@ -41,7 +44,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,7 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import com.example.ui.theme.CoralAccent
+import com.example.service.JarvisFloatingService
 import com.example.ui.theme.EmeraldPrimary
 import com.example.ui.viewmodel.DashboardUiState
 
@@ -67,13 +69,11 @@ fun BackupSettingsScreen(
     onImportJsonClick: () -> Unit,
     onToggleReminder: (Boolean) -> Unit,
     onClearAllDataClick: () -> Unit,
-    onManageSlmModelClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var showConfirmClearDialog by remember { mutableStateOf(false) }
 
-    // Android 13+ Notification Permission Launcher
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -82,6 +82,15 @@ fun BackupSettingsScreen(
         } else {
             onToggleReminder(false)
         }
+    }
+
+    var isFloatingEnabled by remember { mutableStateOf(JarvisFloatingService.isFloatingServiceEnabled(context)) }
+    val overlayPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        val granted = Settings.canDrawOverlays(context)
+        isFloatingEnabled = granted
+        JarvisFloatingService.setFloatingServiceEnabled(context, granted)
     }
 
     LazyColumn(
@@ -101,14 +110,105 @@ fun BackupSettingsScreen(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Kelola backup lokal dan pengingat harian bunda",
+                    text = "Kelola backup lokal, pengingat harian, dan asisten Si Cici",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
-        // 2. Daily Reminder Card (Sebelum jam 9 malam / 20:30 WIB)
+        // 2. Jarvis Floating Assistant Service Toggle Card
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("jarvis_floating_settings_card"),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .background(EmeraldPrimary.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("🌸", fontSize = 22.sp)
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Asisten Melayang Si Cici",
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Text(
+                                    text = "Tombol melayang di luar aplikasi (Floating Service)",
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Switch(
+                            checked = isFloatingEnabled,
+                            onCheckedChange = { enable ->
+                                if (enable) {
+                                    if (!Settings.canDrawOverlays(context)) {
+                                        val intent = Intent(
+                                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                            Uri.parse("package:${context.packageName}")
+                                        )
+                                        overlayPermissionLauncher.launch(intent)
+                                        Toast.makeText(context, "Izinkan ArAr TOZ tampil di atas aplikasi lain", Toast.LENGTH_LONG).show()
+                                    } else {
+                                        isFloatingEnabled = true
+                                        JarvisFloatingService.setFloatingServiceEnabled(context, true)
+                                    }
+                                } else {
+                                    isFloatingEnabled = false
+                                    JarvisFloatingService.setFloatingServiceEnabled(context, false)
+                                }
+                            },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.surface,
+                                checkedTrackColor = EmeraldPrimary
+                            ),
+                            modifier = Modifier.testTag("floating_service_switch")
+                        )
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Ketika tombol ditekan saat membuka aplikasi lain (seperti WhatsApp atau Tokopedia), dialog popup Si Cici akan muncul untuk mencatat kas di latar belakang.",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(10.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // 3. Daily Reminder Card
         item {
             Card(
                 modifier = Modifier
@@ -161,7 +261,6 @@ fun BackupSettingsScreen(
                                 )
                             }
                         }
-
                         Switch(
                             checked = uiState.isDailyReminderActive,
                             onCheckedChange = { enabled ->
@@ -170,7 +269,6 @@ fun BackupSettingsScreen(
                                         context,
                                         Manifest.permission.POST_NOTIFICATIONS
                                     ) == PackageManager.PERMISSION_GRANTED
-
                                     if (!hasPermission) {
                                         permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                                     } else {
@@ -187,7 +285,6 @@ fun BackupSettingsScreen(
                             modifier = Modifier.testTag("reminder_switch")
                         )
                     }
-
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -209,78 +306,6 @@ fun BackupSettingsScreen(
                                 fontSize = 11.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        }
-                    }
-                }
-            }
-        }
-
-        // 3. Model AI Si Cici (100% Offline SLM)
-        if (onManageSlmModelClick != null) {
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("slm_model_card"),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .background(EmeraldPrimary.copy(alpha = 0.12f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = EmeraldPrimary,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                            }
-                            Column {
-                                Text(
-                                    text = "Model AI Si Cici (100% Offline)",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Text(
-                                    text = "Qwen 2.5 (1.5B) & Gemma 2 (2B)",
-                                    fontSize = 11.sp,
-                                    color = EmeraldPrimary,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            }
-                        }
-
-                        Text(
-                            text = "Jalankan AI sepenuhnya di dalam ponsel Bunda tanpa koneksi internet. Aman untuk data pribadi dan bisa dipakai berbelanja di pasar tradisional.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-
-                        Button(
-                            onClick = onManageSlmModelClick,
-                            colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(46.dp)
-                        ) {
-                            Icon(Icons.Default.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Kelola & Unduh Model AI Offline", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -313,12 +338,10 @@ fun BackupSettingsScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        // Export Button
                         Button(
                             onClick = onExportJsonClick,
                             colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
@@ -333,7 +356,6 @@ fun BackupSettingsScreen(
                             Text("Ekspor JSON", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
 
-                        // Import Button
                         OutlinedButton(
                             onClick = onImportJsonClick,
                             shape = RoundedCornerShape(12.dp),
@@ -351,7 +373,7 @@ fun BackupSettingsScreen(
             }
         }
 
-        // 4. Privacy & 100% Offline Information Card
+        // 5. Privacy & Offline Card
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -379,7 +401,7 @@ fun BackupSettingsScreen(
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = "Semua data keuangan Anda disimpan di perangkat lokal (Room Database SQLite) dengan enkripsi sistem Android. Tidak ada data yang dikirim ke server pihak ketiga manapun.",
+                            text = "Semua data keuangan Anda disimpan di perangkat lokal (Room Database SQLite) dengan asisten Si Cici on-device. Tidak ada data yang dikirim ke server luar manapun.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
                             fontSize = 12.sp
@@ -389,7 +411,7 @@ fun BackupSettingsScreen(
             }
         }
 
-        // 5. Danger Zone: Bersihkan / Reset Seluruh Data Kas
+        // 6. Danger Zone
         item {
             Card(
                 modifier = Modifier
@@ -421,13 +443,11 @@ fun BackupSettingsScreen(
                             color = MaterialTheme.colorScheme.error
                         )
                     }
-
                     Text(
                         text = "Hapus semua catatan riwayat transaksi, tagihan, hutang/piutang, belanjaan dapur, dan patokan harga. Pos amplop akan dikembalikan bersih.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-
                     Button(
                         onClick = { showConfirmClearDialog = true },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),

@@ -53,18 +53,28 @@ fun BudgetEnvelopeCard(
         label = "budget_progress"
     )
 
-    val (statusColor, statusText, statusBg) = when (envelope.status) {
-        BudgetEnvelopeStatus.GREEN -> Triple(
+    val (statusColor, statusText, statusBg) = when {
+        envelope.monthlyLimit <= 0L && envelope.spentAmount > 0L -> Triple(
+            AmberWarning,
+            "Tanpa Kuota",
+            AmberWarning.copy(alpha = 0.15f)
+        )
+        envelope.monthlyLimit <= 0L -> Triple(
+            MaterialTheme.colorScheme.onSurfaceVariant,
+            "Belum Diatur",
+            MaterialTheme.colorScheme.surfaceVariant
+        )
+        envelope.status == BudgetEnvelopeStatus.GREEN -> Triple(
             GreenBudgetSafe,
             "Aman (<70%)",
             GreenBudgetSafe.copy(alpha = 0.12f)
         )
-        BudgetEnvelopeStatus.YELLOW -> Triple(
+        envelope.status == BudgetEnvelopeStatus.YELLOW -> Triple(
             AmberWarning,
             "Waspada (70-90%)",
             AmberWarning.copy(alpha = 0.15f)
         )
-        BudgetEnvelopeStatus.RED -> Triple(
+        else -> Triple(
             RedBudgetAlert,
             if (envelope.remainingAmount < 0) "Kelewat Kuota!" else "Kritis (>90%)",
             RedBudgetAlert.copy(alpha = 0.15f)

@@ -8,23 +8,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -66,14 +61,12 @@ fun AddWishlistDialog(
         note: String
     ) -> Unit
 ) {
-    // Mode: false = Belanja Dapur / Rutin (tanpa tabungan), true = Target Impian (dengan tabungan)
     var isSavingGoal by remember { mutableStateOf(false) }
-
     var name by remember { mutableStateOf("") }
     var quantityOrUnit by remember { mutableStateOf("") }
-    var targetExp by remember { mutableStateOf("") }       // Estimasi (opsional)
-    var actualExp by remember { mutableStateOf("") }       // Harga sebenarnya (opsional)
-    var initialSavedExp by remember { mutableStateOf("") } // Tabungan awal (hanya jika target)
+    var targetExp by remember { mutableStateOf("") }
+    var actualExp by remember { mutableStateOf("") }
+    var initialSavedExp by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(WishlistCategories.KITCHEN) }
     var selectedPriority by remember { mutableStateOf(WishlistPriorities.HIGH) }
     var note by remember { mutableStateOf("") }
@@ -90,7 +83,7 @@ fun AddWishlistDialog(
         modifier = Modifier.testTag("add_wishlist_dialog"),
         title = {
             Text(
-                text = if (isSavingGoal) "Target Impian / Tabungan 🎯" else "Daftar Belanja Dapur / Rutin 🛒",
+                text = if (isSavingGoal) "Target Impian / Tabungan 🎯" else "Daftar Belanja Dapur / Rutin 🥬",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -102,7 +95,6 @@ fun AddWishlistDialog(
                     .padding(vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Mode Toggle: Belanja Dapur Langsung vs Target Impian Bertahap
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -124,14 +116,13 @@ fun AddWishlistDialog(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "🛒 Belanja Dapur",
+                                text = "🥬 Belanja Dapur",
                                 fontSize = 12.sp,
                                 fontWeight = if (!isSavingGoal) FontWeight.Bold else FontWeight.Normal,
                                 color = if (!isSavingGoal) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
-
                     Surface(
                         onClick = {
                             isSavingGoal = true
@@ -155,7 +146,6 @@ fun AddWishlistDialog(
                     }
                 }
 
-                // Nama Barang
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -168,7 +158,6 @@ fun AddWishlistDialog(
                     singleLine = true
                 )
 
-                // Jumlah / Satuan (misal: "1 kg", "2 ikat", "1 pcs")
                 OutlinedTextField(
                     value = quantityOrUnit,
                     onValueChange = { quantityOrUnit = it },
@@ -179,7 +168,6 @@ fun AddWishlistDialog(
                     singleLine = true
                 )
 
-                // Estimasi Harga (OPSIONAL)
                 Column {
                     OutlinedTextField(
                         value = targetExp,
@@ -204,7 +192,6 @@ fun AddWishlistDialog(
                     }
                 }
 
-                // Harga Sebenarnya (Opsional jika sudah dibeli)
                 Column {
                     OutlinedTextField(
                         value = actualExp,
@@ -227,7 +214,6 @@ fun AddWishlistDialog(
                     }
                 }
 
-                // Tabungan Awal (Hanya jika Target Impian)
                 if (isSavingGoal) {
                     OutlinedTextField(
                         value = initialSavedExp,
@@ -241,7 +227,6 @@ fun AddWishlistDialog(
                     )
                 }
 
-                // Category Chips
                 Column {
                     Text(
                         text = "Kategori Pos:",
@@ -264,7 +249,6 @@ fun AddWishlistDialog(
                     }
                 }
 
-                // Priority Chips
                 Column {
                     Text(
                         text = "Prioritas:",
@@ -337,7 +321,6 @@ fun EditActualPriceDialog(
 ) {
     var priceExp by remember { mutableStateOf(if (wishlist.actualPrice > 0) wishlist.actualPrice.toString() else "") }
     var recordAsExpense by remember { mutableStateOf(true) }
-
     val calculatedPrice by remember(priceExp) {
         derivedStateOf { MathExpressionEvaluator.evaluateMathExpression(priceExp) }
     }
@@ -347,7 +330,7 @@ fun EditActualPriceDialog(
         modifier = Modifier.testTag("edit_actual_price_dialog"),
         title = {
             Text(
-                text = "Catat Harga Beli Sebenarnya 🏷️",
+                text = "Catat Harga Beli Sebenarnya 🛒",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -362,7 +345,6 @@ fun EditActualPriceDialog(
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.bodyMedium
                 )
-
                 if (wishlist.targetAmount > 0) {
                     Text(
                         text = "Estimasi patokan awal: ${CurrencyFormatter.formatRupiah(wishlist.targetAmount)}",
@@ -370,7 +352,6 @@ fun EditActualPriceDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-
                 OutlinedTextField(
                     value = priceExp,
                     onValueChange = { priceExp = it },
@@ -381,7 +362,6 @@ fun EditActualPriceDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                     singleLine = true
                 )
-
                 if (calculatedPrice > 0) {
                     Text(
                         text = "= ${CurrencyFormatter.formatRupiah(calculatedPrice)}",
@@ -389,21 +369,18 @@ fun EditActualPriceDialog(
                         fontWeight = FontWeight.Bold,
                         color = GreenBudgetSafe
                     )
-
                     if (wishlist.targetAmount > 0) {
                         val diff = wishlist.targetAmount - calculatedPrice
                         Text(
-                            text = if (diff > 0) "Lebih hemat ${CurrencyFormatter.formatRupiah(diff)} dari estimasi! 🟢"
-                            else if (diff < 0) "Lebih mahal ${CurrencyFormatter.formatRupiah(-diff)} dari estimasi 🔴"
-                            else "Tepat sesuai estimasi harga 👍",
+                            text = if (diff > 0) "Lebih hemat ${CurrencyFormatter.formatRupiah(diff)} dari estimasi! 💰"
+                            else if (diff < 0) "Lebih mahal ${CurrencyFormatter.formatRupiah(-diff)} dari estimasi ⚠️"
+                            else "Tepat sesuai estimasi harga ✨",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = if (diff >= 0) GreenBudgetSafe else MaterialTheme.colorScheme.error
                         )
                     }
                 }
-
-                // Checkbox to record immediately to transactions
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -451,7 +428,6 @@ fun AllocateSavingsDialog(
     val calculatedAmount by remember(amountExp) {
         derivedStateOf { MathExpressionEvaluator.evaluateMathExpression(amountExp) }
     }
-
     val remainingNeeded = (wishlist.targetAmount - wishlist.savedAmount).coerceAtLeast(0L)
 
     AlertDialog(
@@ -459,7 +435,7 @@ fun AllocateSavingsDialog(
         modifier = Modifier.testTag("allocate_savings_dialog"),
         title = {
             Text(
-                text = "Alokasikan Tabungan 💰",
+                text = "Alokasikan Tabungan 🎯",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -479,8 +455,6 @@ fun AllocateSavingsDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
-                // Quick Addition Chips
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -511,7 +485,6 @@ fun AllocateSavingsDialog(
                         }
                     }
                 }
-
                 OutlinedTextField(
                     value = amountExp,
                     onValueChange = { amountExp = it },
@@ -524,7 +497,6 @@ fun AllocateSavingsDialog(
                         .fillMaxWidth()
                         .testTag("allocate_amount_input")
                 )
-
                 if (calculatedAmount > 0) {
                     Text(
                         text = "Akan ditambahkan: ${CurrencyFormatter.formatRupiah(calculatedAmount)}",

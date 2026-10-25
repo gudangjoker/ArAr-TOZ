@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "ArAr Cicis"
+rootProject.name = "ArAr TOZ"
 
 include(":app")

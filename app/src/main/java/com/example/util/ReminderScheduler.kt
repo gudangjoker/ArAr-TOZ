@@ -9,11 +9,11 @@ import com.example.receiver.DailyReminderReceiver
 import java.util.Calendar
 
 object ReminderScheduler {
-
     private const val PREFS_NAME = "dompet_prefs"
     private const val KEY_REMINDER_ENABLED = "daily_reminder_enabled"
     private const val KEY_REMINDER_HOUR = "daily_reminder_hour"
     private const val KEY_REMINDER_MINUTE = "daily_reminder_minute"
+
     private const val DEFAULT_HOUR = 20 // 20:30 WIB (sebelum jam 9 malam)
     private const val DEFAULT_MINUTE = 30
     private const val ALARM_REQ_CODE = 2001
@@ -61,7 +61,6 @@ object ReminderScheduler {
             set(Calendar.MINUTE, minute)
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
-
             // If time has already passed today in Jakarta, schedule for tomorrow
             if (timeInMillis <= System.currentTimeMillis()) {
                 add(Calendar.DAY_OF_YEAR, 1)
@@ -71,7 +70,6 @@ object ReminderScheduler {
         val intent = Intent(context, DailyReminderReceiver::class.java).apply {
             action = "com.example.ACTION_DAILY_REMINDER"
         }
-
         val pendingIntent = PendingIntent.getBroadcast(
             context,
             ALARM_REQ_CODE,

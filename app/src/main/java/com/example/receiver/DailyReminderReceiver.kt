@@ -49,7 +49,6 @@ class DailyReminderReceiver : BroadcastReceiver() {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             putExtra("OPEN_QUICK_ADD", true)
         }
-
         val pendingIntent = PendingIntent.getActivity(
             context,
             0,
@@ -59,11 +58,11 @@ class DailyReminderReceiver : BroadcastReceiver() {
 
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Bunda, Catat Belanja Hari Ini Yuk! 👛✨")
+            .setContentTitle("Bunda, Catat Belanja Hari Ini Yuk! 🥬")
             .setContentText("Luangkan 1 menit sebelum jam 9 malam agar pos amplop anggaran dapur tetap aman terkontrol.")
             .setStyle(
                 NotificationCompat.BigTextStyle()
-                    .bigText("Luangkan 1 menit sebelum jam 9 malam untuk mencatat pengeluaran dapur & jajan hari ini. Amplop belanja rapi, hati tenang! 💕")
+                    .bigText("Luangkan 1 menit sebelum jam 9 malam untuk mencatat pengeluaran dapur & jajan hari ini. Amplop belanja rapi, hati tenang! 💖")
             )
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)

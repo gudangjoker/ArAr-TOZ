@@ -41,14 +41,14 @@ object DefaultExpenseCategories {
             DAPUR -> "🥬"
             BULANAN -> "🛒"
             ANAK -> "🎒"
-            LISTRIK -> "⚡"
+            LISTRIK -> "💡"
             RUMAH -> "🏠"
             KESEHATAN -> "💊"
             SEDEKAH -> "🤲"
             HIBURAN -> "☕"
-            "Gaji Suami / Nafkah" -> "💼"
+            "Gaji Suami / Nafkah" -> "💵"
             "Bonus / Tambahan" -> "🎁"
-            "Hasil Usaha" -> "🛍️"
+            "Hasil Usaha" -> "📈"
             else -> "📝"
         }
     }

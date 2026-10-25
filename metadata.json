@@ -1,0 +1,6 @@
+{
+  "name": "ArAr TOZ",
+  "description": "ArAr TOZ - Aplikasi pencatatan keuangan dan anggaran belanja rumah tangga offline untuk keluarga dengan pos amplop anggaran, wishlist belanja, kalkulator cepat, dan asisten pintar offline Si Cici.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

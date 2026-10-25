@@ -3,30 +3,31 @@ package com.example.ui
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Drafts
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.outlined.AutoAwesome
-import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Drafts
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.ShoppingCart
+import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FloatingActionButton
@@ -49,12 +50,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.entity.BillEntity
 import com.example.data.entity.DebtLoanEntity
@@ -67,7 +70,6 @@ import com.example.ui.dialog.AddWishlistDialog
 import com.example.ui.dialog.AllocateSavingsDialog
 import com.example.ui.dialog.EditActualPriceDialog
 import com.example.ui.dialog.EditBudgetDialog
-import com.example.ui.dialog.ModelDownloadDialog
 import com.example.ui.dialog.PayBillDialog
 import com.example.ui.dialog.PayDebtDialog
 import com.example.ui.dialog.TransactionInputDialog
@@ -75,11 +77,10 @@ import com.example.ui.screens.BackupSettingsScreen
 import com.example.ui.screens.BillsAndDebtsScreen
 import com.example.ui.screens.BudgetEnvelopeScreen
 import com.example.ui.screens.DashboardScreen
-import com.example.ui.screens.SiCiciChatScreen
+import com.example.ui.screens.JarvisChatScreen
 import com.example.ui.screens.WishlistScreen
 import com.example.ui.theme.EmeraldPrimary
 import com.example.ui.viewmodel.FinanceViewModel
-import com.example.util.DateTimeUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -100,14 +101,13 @@ fun MainAppScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     var selectedTabIndex by rememberSaveable { mutableIntStateOf(0) }
 
     // Dialog state
     var showTransactionDialog by rememberSaveable { mutableStateOf(initialOpenQuickAdd) }
-    var budgetToEdit by remember { mutableStateOf<Triple<String, Long, String>?>(null) } // category, limit, emoji
+    var budgetToEdit by remember { mutableStateOf<Triple<String, Long, String>?>(null) }
     var showAddWishlistDialog by rememberSaveable { mutableStateOf(false) }
     var wishlistToAllocate by remember { mutableStateOf<WishlistEntity?>(null) }
     var wishlistToEditPrice by remember { mutableStateOf<WishlistEntity?>(null) }
@@ -116,8 +116,7 @@ fun MainAppScreen(
     var showAddDebtDialog by rememberSaveable { mutableStateOf(false) }
     var debtToPay by remember { mutableStateOf<DebtLoanEntity?>(null) }
     var showAddPriceTrackDialog by rememberSaveable { mutableStateOf(false) }
-    var showConfirmRestoreDialog by remember { mutableStateOf<String?>(null) } // json content pending restore
-    var showModelDownloadDialog by rememberSaveable { mutableStateOf(false) }
+    var showConfirmRestoreDialog by remember { mutableStateOf<String?>(null) }
 
     val shareRekapToWhatsApp = {
         try {
@@ -134,7 +133,6 @@ fun MainAppScreen(
         }
     }
 
-    // Toast & Snackbar feedback
     LaunchedEffect(uiState.userMessage) {
         uiState.userMessage?.let { msg ->
             snackbarHostState.showSnackbar(msg)
@@ -142,7 +140,7 @@ fun MainAppScreen(
         }
     }
 
-    // SAF Create Document (Export JSON) Launcher
+    // SAF Export
     val exportJsonLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri: Uri? ->
@@ -163,7 +161,7 @@ fun MainAppScreen(
         }
     }
 
-    // SAF Open Document (Import JSON) Launcher
+    // SAF Import
     val importJsonLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
@@ -187,14 +185,10 @@ fun MainAppScreen(
         }
     }
 
-    BackHandler(enabled = selectedTabIndex != 0) {
-        selectedTabIndex = 0
-    }
-
     val navTabs = listOf(
         NavTabItem("Ringkasan", Icons.Filled.Home, Icons.Outlined.Home, "nav_tab_dashboard"),
         NavTabItem("Amplop", Icons.Filled.Drafts, Icons.Outlined.Drafts, "nav_tab_envelopes"),
-        NavTabItem("Si Cici", Icons.Filled.AutoAwesome, Icons.Outlined.AutoAwesome, "nav_tab_sicici"),
+        NavTabItem("Si Cici", Icons.Filled.SmartToy, Icons.Outlined.SmartToy, "nav_tab_jarvis"),
         NavTabItem("Tagihan", Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth, "nav_tab_bills"),
         NavTabItem("Belanja", Icons.Filled.ShoppingCart, Icons.Outlined.ShoppingCart, "nav_tab_wishlist"),
         NavTabItem("Cadangan", Icons.Filled.Settings, Icons.Outlined.Settings, "nav_tab_settings")
@@ -225,6 +219,7 @@ fun MainAppScreen(
                         label = {
                             Text(
                                 text = tab.title,
+                                fontSize = 11.sp,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         },
@@ -239,7 +234,22 @@ fun MainAppScreen(
             }
         },
         floatingActionButton = {
-            if (selectedTabIndex == 0) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Secondary Jarvis Floating Button when not on Jarvis tab
+                if (selectedTabIndex != 2) {
+                    FloatingActionButton(
+                        onClick = { selectedTabIndex = 2 },
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = EmeraldPrimary,
+                        modifier = Modifier.testTag("fab_jarvis_assistant")
+                    ) {
+                        Icon(imageVector = Icons.Default.SmartToy, contentDescription = "Tanya Si Cici")
+                    }
+                }
+
                 ExtendedFloatingActionButton(
                     onClick = { showTransactionDialog = true },
                     containerColor = EmeraldPrimary,
@@ -272,7 +282,7 @@ fun MainAppScreen(
                         budgetToEdit = Triple(cat, limit, emoji)
                     },
                     onNavigateToEnvelopes = { selectedTabIndex = 1 },
-                    onNavigateToSiCici = { selectedTabIndex = 2 }
+                    onShareRekapToWhatsApp = shareRekapToWhatsApp
                 )
                 1 -> BudgetEnvelopeScreen(
                     uiState = uiState,
@@ -280,13 +290,15 @@ fun MainAppScreen(
                         budgetToEdit = Triple(cat, limit, emoji)
                     },
                     onAddNewCategory = {
-                        budgetToEdit = Triple("", 0L, "💰")
-                    },
-                    onShareRekapToWhatsApp = shareRekapToWhatsApp
+                        budgetToEdit = Triple("Pos Belanja Baru", 500_000L, "💰")
+                    }
                 )
-                2 -> SiCiciChatScreen(
-                    viewModel = viewModel,
-                    uiState = uiState
+                2 -> JarvisChatScreen(
+                    aiEngine = viewModel.aiEngine,
+                    downloadManager = viewModel.downloadManager,
+                    onDataUpdated = {
+                        // Data updated via Jarvis CRUD
+                    }
                 )
                 3 -> BillsAndDebtsScreen(
                     uiState = uiState,
@@ -343,9 +355,6 @@ fun MainAppScreen(
                     },
                     onClearAllDataClick = {
                         viewModel.clearAllData()
-                    },
-                    onManageSlmModelClick = {
-                        showModelDownloadDialog = true
                     }
                 )
             }
@@ -355,7 +364,6 @@ fun MainAppScreen(
     // Modal Bottom Sheet: Quick Transaction Input
     if (showTransactionDialog) {
         TransactionInputDialog(
-            budgetCategories = uiState.budgetCategories,
             onDismissRequest = { showTransactionDialog = false },
             onSaveTransaction = { type, amountExp, category, wallet, note ->
                 viewModel.addTransaction(
@@ -372,22 +380,13 @@ fun MainAppScreen(
     // Dialog: Edit / Add Budget Limit
     budgetToEdit?.let { (category, currentLimit, emoji) ->
         EditBudgetDialog(
-            initialCategoryName = category,
+            categoryName = category,
             currentLimit = currentLimit,
-            initialIconEmoji = emoji,
-            isNewCategory = category.isBlank(),
+            iconEmoji = emoji,
             onDismissRequest = { budgetToEdit = null },
-            onSaveCategory = { newName, newLimitExp, newEmoji ->
-                viewModel.saveBudgetCategory(
-                    originalCategoryName = category.ifBlank { null },
-                    newCategoryName = newName,
-                    limitInput = newLimitExp,
-                    iconEmoji = newEmoji
-                )
-            },
-            onDeleteCategory = if (category.isNotBlank()) {
-                { viewModel.deleteBudgetCategoryByName(category) }
-            } else null
+            onSaveLimit = { newLimitExp ->
+                viewModel.setBudgetLimit(category, newLimitExp, emoji)
+            }
         )
     }
 
@@ -516,13 +515,6 @@ fun MainAppScreen(
                     Text("Batal")
                 }
             }
-        )
-    }
-
-    if (showModelDownloadDialog) {
-        ModelDownloadDialog(
-            viewModel = viewModel,
-            onDismiss = { showModelDownloadDialog = false }
         )
     }
 }

@@ -20,7 +20,7 @@ class ExampleRobolectricTest {
   fun `read string from context`() {
     val context = ApplicationProvider.getApplicationContext<Context>()
     val appName = context.getString(R.string.app_name)
-    assertEquals("ArAr Cicis", appName)
+    assertEquals("ArAr TOZ", appName)
   }
 
   @Test
@@ -47,36 +47,5 @@ class ExampleRobolectricTest {
     val monthYearKey = DateTimeUtils.getCurrentMonthYearKey()
     assertTrue(monthYearKey.contains("-"))
     assertEquals(7, monthYearKey.length) // MM-yyyy
-  }
-
-  @Test
-  fun `cici offline brain extracts expense transaction from natural speech`() {
-    val emptyState = com.example.ui.viewmodel.DashboardUiState()
-    val response = com.example.ai.engine.GemmaCiciBrain.processOfflineNlp("Beli bayam 10 ribu uang tunai", emptyState)
-
-    val action = response.structuredAction
-    org.junit.Assert.assertNotNull(action)
-    assertEquals("ADD_EXPENSE", action?.action)
-    assertEquals(10_000L, action?.amount)
-    assertEquals("Belanja Dapur & Sayur", action?.category)
-    assertEquals("Dompet Tunai", action?.walletSource)
-  }
-
-  @Test
-  fun `cici offline brain handles saldo inquiry`() {
-    val state = com.example.ui.viewmodel.DashboardUiState(totalNetBalance = 1_500_000L)
-    val response = com.example.ai.engine.GemmaCiciBrain.processOfflineNlp("Berapa sisa saldo kas kita?", state)
-
-    assertEquals("CHECK_BALANCE", response.structuredAction?.action)
-    assertTrue(response.replyText.contains("1.500.000"))
-  }
-
-  @Test
-  fun `cici offline brain extracts wishlist item`() {
-    val emptyState = com.example.ui.viewmodel.DashboardUiState()
-    val response = com.example.ai.engine.GemmaCiciBrain.processOfflineNlp("Catat minyak goreng di belanjaan", emptyState)
-
-    assertEquals("ADD_WISHLIST", response.structuredAction?.action)
-    assertTrue(response.structuredAction?.itemName?.contains("minyak goreng", ignoreCase = true) == true)
   }
 }

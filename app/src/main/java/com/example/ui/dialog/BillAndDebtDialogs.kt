@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -16,7 +15,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -37,7 +35,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.entity.BillEntity
 import com.example.data.entity.DebtLoanEntity
-import com.example.data.entity.PriceTrackerEntity
 import com.example.data.model.DebtTypes
 import com.example.data.model.DefaultExpenseCategories
 import com.example.data.model.WalletSources
@@ -117,7 +114,6 @@ fun AddBillDialog(
                     singleLine = true
                 )
 
-                // Pos Kategori
                 Column {
                     Text("Pos Kategori:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                     Row(
@@ -140,11 +136,10 @@ fun AddBillDialog(
                     }
                 }
 
-                // Sumber Dana Pembayaran
                 Column {
                     Text("Sumber Dompet:", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold)
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         WalletSources.ALL.forEach { w ->
@@ -207,7 +202,7 @@ fun PayBillDialog(
         onDismissRequest = onDismissRequest,
         modifier = Modifier.testTag("pay_bill_dialog"),
         title = {
-            Text("Bayar Tagihan: ${bill.title} ⚡", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            Text("Bayar Tagihan: ${bill.title} 💳", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
         },
         text = {
             Column(
@@ -219,7 +214,6 @@ fun PayBillDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
                 OutlinedTextField(
                     value = amountExp,
                     onValueChange = { amountExp = it },
@@ -229,7 +223,6 @@ fun PayBillDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                     singleLine = true
                 )
-
                 if (calculatedAmount > 0) {
                     Text(
                         text = "= ${CurrencyFormatter.formatRupiah(calculatedAmount)}",
@@ -293,7 +286,7 @@ fun AddDebtLoanDialog(
         modifier = Modifier.testTag("add_debt_dialog"),
         title = {
             Text(
-                text = if (selectedType == DebtTypes.PAYABLE) "Catat Hutang Saya (Kewajiban) 📝" else "Catat Piutang (Uang di Orang) 🤝",
+                text = if (selectedType == DebtTypes.PAYABLE) "Catat Hutang Saya (Kewajiban) ⚠️" else "Catat Piutang (Uang di Orang) 🤝",
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleMedium
             )
@@ -303,7 +296,6 @@ fun AddDebtLoanDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Type selector
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -433,7 +425,6 @@ fun PayDebtDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
                 OutlinedTextField(
                     value = paymentExp,
                     onValueChange = { paymentExp = it },
@@ -443,7 +434,6 @@ fun PayDebtDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                     singleLine = true
                 )
-
                 if (calculatedPayment > 0) {
                     Text(
                         text = "= ${CurrencyFormatter.formatRupiah(calculatedPayment)}",
@@ -460,7 +450,7 @@ fun PayDebtDialog(
                     Checkbox(
                         checked = recordAsTx,
                         onCheckedChange = { recordAsTx = it },
-                        colors = CheckboxDefaults.colors(checkedColor = EmeraldPrimary)
+                        colors = androidx.compose.material3.CheckboxDefaults.colors(checkedColor = EmeraldPrimary)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
@@ -527,7 +517,7 @@ fun AddPriceTrackDialog(
         onDismissRequest = onDismissRequest,
         modifier = Modifier.testTag("add_price_track_dialog"),
         title = {
-            Text("Catat Patokan Harga Pasar 🏷️", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+            Text("Catat Patokan Harga Pasar 🛒", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
         },
         text = {
             Column(

@@ -1,7 +1,6 @@
 package com.example.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,11 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
@@ -65,7 +62,6 @@ fun WishlistCard(
 ) {
     val isKitchen = item.categoryType == WishlistCategories.KITCHEN
     val isPersonal = item.categoryType == WishlistCategories.PERSONAL
-
     val priorityColor = when (item.priority) {
         WishlistPriorities.HIGH -> CoralAccent
         WishlistPriorities.MEDIUM -> AmberWarning
@@ -104,9 +100,7 @@ fun WishlistCard(
                     ),
                     modifier = Modifier.testTag("checkbox_bought_${item.id}")
                 )
-
                 Spacer(modifier = Modifier.width(4.dp))
-
                 // Item Name + Quantity / Unit
                 Column(modifier = Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -118,7 +112,6 @@ fun WishlistCard(
                             else MaterialTheme.colorScheme.onSurface,
                             textDecoration = if (item.isFulfilled) TextDecoration.LineThrough else TextDecoration.None
                         )
-
                         if (item.quantityOrUnit.isNotBlank()) {
                             Spacer(modifier = Modifier.width(6.dp))
                             Surface(
@@ -135,7 +128,6 @@ fun WishlistCard(
                             }
                         }
                     }
-
                     if (item.note.isNotBlank()) {
                         Text(
                             text = item.note,
@@ -145,7 +137,6 @@ fun WishlistCard(
                         )
                     }
                 }
-
                 // Delete button
                 IconButton(
                     onClick = onDelete,
@@ -180,7 +171,7 @@ fun WishlistCard(
                     Text(
                         text = when {
                             isKitchen -> "🥬 Belanja Dapur / Pasar"
-                            isPersonal -> "✨ Keinginan Pribadi"
+                            isPersonal -> "🎁 Keinginan Pribadi"
                             else -> "🏠 Kebutuhan Rumah"
                         },
                         fontSize = 11.sp,
@@ -200,7 +191,7 @@ fun WishlistCard(
                     color = if (item.isSavingGoal) EmeraldPrimary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Text(
-                        text = if (item.isSavingGoal) "🎯 Target Tabungan" else "🛒 Belanja Langsung",
+                        text = if (item.isSavingGoal) "🎯 Target Tabungan" else "⚡ Belanja Langsung",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = if (item.isSavingGoal) EmeraldPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -271,7 +262,6 @@ fun WishlistCard(
                                 )
                             }
                         }
-
                         Text(
                             text = if (item.actualPrice > 0) CurrencyFormatter.formatRupiah(item.actualPrice) else "+ Masukkan harga",
                             fontSize = 13.sp,
@@ -286,11 +276,10 @@ fun WishlistCard(
             if (item.targetAmount > 0 && item.actualPrice > 0) {
                 val diff = item.targetAmount - item.actualPrice
                 val (badgeText, badgeColor, badgeBg) = when {
-                    diff > 0 -> Triple("Hemat ${CurrencyFormatter.formatRupiah(diff)} dari estimasi! 🥳", GreenBudgetSafe, GreenBudgetSafe.copy(alpha = 0.12f))
+                    diff > 0 -> Triple("Hemat ${CurrencyFormatter.formatRupiah(diff)} dari estimasi! 💰", GreenBudgetSafe, GreenBudgetSafe.copy(alpha = 0.12f))
                     diff < 0 -> Triple("Lebih mahal ${CurrencyFormatter.formatRupiah(-diff)} dari estimasi", RedBudgetAlert, RedBudgetAlert.copy(alpha = 0.12f))
                     else -> Triple("Tepat sesuai estimasi harga", EmeraldPrimary, EmeraldPrimary.copy(alpha = 0.12f))
                 }
-
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = badgeBg,
@@ -324,7 +313,6 @@ fun WishlistCard(
                         trackColor = MaterialTheme.colorScheme.surfaceVariant,
                         strokeCap = StrokeCap.Round
                     )
-
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -336,7 +324,6 @@ fun WishlistCard(
                             fontWeight = FontWeight.Bold,
                             color = EmeraldPrimary
                         )
-
                         FilledTonalButton(
                             onClick = onAllocateSavingsClick,
                             colors = ButtonDefaults.filledTonalButtonColors(
