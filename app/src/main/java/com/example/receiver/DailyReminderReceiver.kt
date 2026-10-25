@@ -57,7 +57,7 @@ class DailyReminderReceiver : BroadcastReceiver() {
         )
 
         val notification = NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("Bunda, Catat Belanja Hari Ini Yuk! 🥬")
             .setContentText("Luangkan 1 menit sebelum jam 9 malam agar pos amplop anggaran dapur tetap aman terkontrol.")
             .setStyle(

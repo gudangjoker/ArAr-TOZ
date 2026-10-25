@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.NotificationsActive
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -70,7 +69,6 @@ fun DashboardScreen(
     onDeleteTransaction: (TransactionEntity) -> Unit,
     onEditBudgetLimit: (categoryName: String, currentLimit: Long, iconEmoji: String) -> Unit,
     onNavigateToEnvelopes: () -> Unit,
-    onShareRekapToWhatsApp: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val now = DateTimeUtils.getCurrentJakartaTimeMillis()
@@ -310,74 +308,6 @@ fun DashboardScreen(
             }
         }
 
-        // 2B. Share Rekap
-        item {
-            Card(
-                onClick = onShareRekapToWhatsApp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("share_rekap_card"),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = GreenBudgetSafe.copy(alpha = 0.12f)
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = GreenBudgetSafe,
-                            modifier = Modifier.size(38.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Share,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "Kirim Rekap Kas ke Pasangan 📲",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "Format teks rapi via WhatsApp (saldo, belanja hari ini, amplop & tagihan)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = GreenBudgetSafe
-                    ) {
-                        Text(
-                            text = "Kirim",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                        )
-                    }
-                }
-            }
-        }
 
         // 3. Top Envelopes Preview
         item {
@@ -545,7 +475,7 @@ fun DashboardScreen(
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Ketuk tombol '+ Catat' di bawah atau panggil Asisten Si Cici untuk mencatat pengeluaran dapur Anda.",
+                            text = "Ketuk tombol '+ Catat' di bawah untuk mencatat transaksi keuangan Anda.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

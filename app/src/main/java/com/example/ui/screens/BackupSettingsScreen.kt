@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -52,14 +53,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import com.example.service.JarvisFloatingService
 import com.example.ui.theme.EmeraldPrimary
+import com.example.ui.theme.GreenBudgetSafe
 import com.example.ui.viewmodel.DashboardUiState
 
 @Composable
@@ -69,6 +71,7 @@ fun BackupSettingsScreen(
     onImportJsonClick: () -> Unit,
     onToggleReminder: (Boolean) -> Unit,
     onClearAllDataClick: () -> Unit,
+    onShareRekapToWhatsApp: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -82,15 +85,6 @@ fun BackupSettingsScreen(
         } else {
             onToggleReminder(false)
         }
-    }
-
-    var isFloatingEnabled by remember { mutableStateOf(JarvisFloatingService.isFloatingServiceEnabled(context)) }
-    val overlayPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) {
-        val granted = Settings.canDrawOverlays(context)
-        isFloatingEnabled = granted
-        JarvisFloatingService.setFloatingServiceEnabled(context, granted)
     }
 
     LazyColumn(
@@ -110,103 +104,14 @@ fun BackupSettingsScreen(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Kelola backup lokal, pengingat harian, dan asisten Si Cici",
+                    text = "Kelola backup lokal dan pengingat harian",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
 
-        // 2. Jarvis Floating Assistant Service Toggle Card
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("jarvis_floating_settings_card"),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .clip(CircleShape)
-                                    .background(EmeraldPrimary.copy(alpha = 0.12f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("🌸", fontSize = 22.sp)
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = "Asisten Melayang Si Cici",
-                                    fontWeight = FontWeight.Bold,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Text(
-                                    text = "Tombol melayang di luar aplikasi (Floating Service)",
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        Switch(
-                            checked = isFloatingEnabled,
-                            onCheckedChange = { enable ->
-                                if (enable) {
-                                    if (!Settings.canDrawOverlays(context)) {
-                                        val intent = Intent(
-                                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                            Uri.parse("package:${context.packageName}")
-                                        )
-                                        overlayPermissionLauncher.launch(intent)
-                                        Toast.makeText(context, "Izinkan ArAr TOZ tampil di atas aplikasi lain", Toast.LENGTH_LONG).show()
-                                    } else {
-                                        isFloatingEnabled = true
-                                        JarvisFloatingService.setFloatingServiceEnabled(context, true)
-                                    }
-                                } else {
-                                    isFloatingEnabled = false
-                                    JarvisFloatingService.setFloatingServiceEnabled(context, false)
-                                }
-                            },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = MaterialTheme.colorScheme.surface,
-                                checkedTrackColor = EmeraldPrimary
-                            ),
-                            modifier = Modifier.testTag("floating_service_switch")
-                        )
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "Ketika tombol ditekan saat membuka aplikasi lain (seperti WhatsApp atau Tokopedia), dialog popup Si Cici akan muncul untuk mencatat kas di latar belakang.",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(10.dp)
-                        )
-                    }
-                }
-            }
-        }
+        // Fitur Asisten Si Cici dibekukan per permintaan user
 
         // 3. Daily Reminder Card
         item {
@@ -373,7 +278,87 @@ fun BackupSettingsScreen(
             }
         }
 
-        // 5. Privacy & Offline Card
+        // 5. Bagikan Rekap Kas via WhatsApp
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("share_rekap_card"),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(GreenBudgetSafe.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = null,
+                                tint = GreenBudgetSafe,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Kirim Rekap Kas via WhatsApp 📲",
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = "Laporan rapi ke pasangan atau keluarga",
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Text(
+                        text = "Bagikan rekap saldo kas terkini, pengeluaran bulan ini, status amplop pos anggaran, serta tagihan yang belum dibayar dalam format teks WhatsApp siap kirim.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Button(
+                        onClick = onShareRekapToWhatsApp,
+                        colors = ButtonDefaults.buttonColors(containerColor = GreenBudgetSafe),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                            .testTag("share_whatsapp_btn")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Kirim Rekap ke WhatsApp",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
+                }
+            }
+        }
+
+        // 6. Privacy & Offline Card
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -401,7 +386,7 @@ fun BackupSettingsScreen(
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = "Semua data keuangan Anda disimpan di perangkat lokal (Room Database SQLite) dengan asisten Si Cici on-device. Tidak ada data yang dikirim ke server luar manapun.",
+                            text = "Semua data keuangan Anda disimpan di perangkat lokal (Room Database SQLite) Tidak ada data yang dikirim ke server luar manapun.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
                             fontSize = 12.sp
@@ -470,7 +455,7 @@ fun BackupSettingsScreen(
             title = { Text("Konfirmasi Hapus Data", fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "Apakah Bunda yakin ingin menghapus bersih seluruh data transaksi, tagihan, catatan hutang, dan daftar belanja? Tindakan ini tidak dapat dibatalkan jika belum dicadangkan."
+                    "Apakah Bunda yakin ingin menghapus bersih seluruh data transaksi, tagihan, catatan hutang, daftar belanja, dan pos amplop anggaran? Tindakan ini tidak dapat dibatalkan jika belum dicadangkan."
                 )
             },
             confirmButton = {

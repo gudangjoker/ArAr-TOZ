@@ -90,10 +90,16 @@ fun WishlistCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Checkbox: Barang sudah dibeli
+                // Checkbox: Barang sudah dibeli / lunas
                 Checkbox(
                     checked = item.isFulfilled,
-                    onCheckedChange = { onToggleFulfilled() },
+                    onCheckedChange = {
+                        if (!item.isFulfilled && item.actualPrice <= 0L && item.targetAmount <= 0L) {
+                            onEditActualPriceClick()
+                        } else {
+                            onToggleFulfilled()
+                        }
+                    },
                     colors = CheckboxDefaults.colors(
                         checkedColor = GreenBudgetSafe,
                         uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -159,28 +165,16 @@ fun WishlistCard(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Category Type Tag
+                // Sumber Pos Anggaran Tag
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = when {
-                        isKitchen -> EmeraldPrimary.copy(alpha = 0.12f)
-                        isPersonal -> CoralAccent.copy(alpha = 0.12f)
-                        else -> MaterialTheme.colorScheme.primaryContainer
-                    }
+                    color = EmeraldPrimary.copy(alpha = 0.12f)
                 ) {
                     Text(
-                        text = when {
-                            isKitchen -> "🥬 Belanja Dapur / Pasar"
-                            isPersonal -> "🎁 Keinginan Pribadi"
-                            else -> "🏠 Kebutuhan Rumah"
-                        },
+                        text = "✉️ Pos: ${item.categoryType}",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = when {
-                            isKitchen -> EmeraldPrimary
-                            isPersonal -> CoralAccent
-                            else -> MaterialTheme.colorScheme.onPrimaryContainer
-                        },
+                        color = EmeraldPrimary,
                         modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
                     )
                 }

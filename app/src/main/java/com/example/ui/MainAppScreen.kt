@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -29,8 +30,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -69,7 +69,8 @@ import com.example.ui.dialog.AddPriceTrackDialog
 import com.example.ui.dialog.AddWishlistDialog
 import com.example.ui.dialog.AllocateSavingsDialog
 import com.example.ui.dialog.EditActualPriceDialog
-import com.example.ui.dialog.EditBudgetDialog
+import com.example.data.model.BudgetEnvelopeItem
+import com.example.ui.dialog.BudgetEnvelopeDialog
 import com.example.ui.dialog.PayBillDialog
 import com.example.ui.dialog.PayDebtDialog
 import com.example.ui.dialog.TransactionInputDialog
@@ -107,7 +108,8 @@ fun MainAppScreen(
 
     // Dialog state
     var showTransactionDialog by rememberSaveable { mutableStateOf(initialOpenQuickAdd) }
-    var budgetToEdit by remember { mutableStateOf<Triple<String, Long, String>?>(null) }
+    var envelopeToEdit by remember { mutableStateOf<BudgetEnvelopeItem?>(null) }
+    var showCreateBudgetDialog by rememberSaveable { mutableStateOf(false) }
     var showAddWishlistDialog by rememberSaveable { mutableStateOf(false) }
     var wishlistToAllocate by remember { mutableStateOf<WishlistEntity?>(null) }
     var wishlistToEditPrice by remember { mutableStateOf<WishlistEntity?>(null) }
@@ -188,7 +190,6 @@ fun MainAppScreen(
     val navTabs = listOf(
         NavTabItem("Ringkasan", Icons.Filled.Home, Icons.Outlined.Home, "nav_tab_dashboard"),
         NavTabItem("Amplop", Icons.Filled.Drafts, Icons.Outlined.Drafts, "nav_tab_envelopes"),
-        NavTabItem("Si Cici", Icons.Filled.SmartToy, Icons.Outlined.SmartToy, "nav_tab_jarvis"),
         NavTabItem("Tagihan", Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth, "nav_tab_bills"),
         NavTabItem("Belanja", Icons.Filled.ShoppingCart, Icons.Outlined.ShoppingCart, "nav_tab_wishlist"),
         NavTabItem("Cadangan", Icons.Filled.Settings, Icons.Outlined.Settings, "nav_tab_settings")
@@ -234,33 +235,21 @@ fun MainAppScreen(
             }
         },
         floatingActionButton = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Secondary Jarvis Floating Button when not on Jarvis tab
-                if (selectedTabIndex != 2) {
-                    FloatingActionButton(
-                        onClick = { selectedTabIndex = 2 },
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = EmeraldPrimary,
-                        modifier = Modifier.testTag("fab_jarvis_assistant")
-                    ) {
-                        Icon(imageVector = Icons.Default.SmartToy, contentDescription = "Tanya Si Cici")
-                    }
-                }
-
-                ExtendedFloatingActionButton(
+            // FAB Catat hanya tampil ringkas pada Halaman Ringkasan (selectedTabIndex == 0)
+            if (selectedTabIndex == 0) {
+                SmallFloatingActionButton(
                     onClick = { showTransactionDialog = true },
+                    shape = CircleShape,
                     containerColor = EmeraldPrimary,
                     contentColor = MaterialTheme.colorScheme.surface,
-                    modifier = Modifier.testTag("fab_quick_add_transaction")
+                    modifier = Modifier
+                        .size(48.dp)
+                        .testTag("fab_quick_add_transaction")
                 ) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "Catat Transaksi")
-                    Text(
-                        text = "Catat",
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(start = 4.dp)
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Catat transaksi",
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
@@ -279,28 +268,26 @@ fun MainAppScreen(
                     onWalletFilterChange = { viewModel.setSelectedWallet(it) },
                     onDeleteTransaction = { viewModel.deleteTransaction(it) },
                     onEditBudgetLimit = { cat, limit, emoji ->
-                        budgetToEdit = Triple(cat, limit, emoji)
+                        val env = uiState.budgetEnvelopes.find { it.categoryName == cat }
+                        if (env != null) {
+                            envelopeToEdit = env
+                        } else {
+                            viewModel.setBudgetLimit(cat, limit.toString(), emoji)
+                        }
                     },
-                    onNavigateToEnvelopes = { selectedTabIndex = 1 },
-                    onShareRekapToWhatsApp = shareRekapToWhatsApp
+                    onNavigateToEnvelopes = { selectedTabIndex = 1 }
                 )
                 1 -> BudgetEnvelopeScreen(
                     uiState = uiState,
-                    onEditBudgetLimit = { cat, limit, emoji ->
-                        budgetToEdit = Triple(cat, limit, emoji)
+                    onEditEnvelope = { env ->
+                        envelopeToEdit = env
                     },
                     onAddNewCategory = {
-                        budgetToEdit = Triple("Pos Belanja Baru", 500_000L, "💰")
-                    }
+                        showCreateBudgetDialog = true
+                    },
+                    onShareRekapToWhatsApp = shareRekapToWhatsApp
                 )
-                2 -> JarvisChatScreen(
-                    aiEngine = viewModel.aiEngine,
-                    downloadManager = viewModel.downloadManager,
-                    onDataUpdated = {
-                        // Data updated via Jarvis CRUD
-                    }
-                )
-                3 -> BillsAndDebtsScreen(
+                2 -> BillsAndDebtsScreen(
                     uiState = uiState,
                     onAddBillClick = { showAddBillDialog = true },
                     onPayBillClick = { bill -> billToPay = bill },
@@ -311,7 +298,7 @@ fun MainAppScreen(
                     onToggleDebtSettled = { debt -> viewModel.toggleDebtSettled(debt) },
                     onDeleteDebt = { debt -> viewModel.deleteDebtLoan(debt) }
                 )
-                4 -> WishlistScreen(
+                3 -> WishlistScreen(
                     uiState = uiState,
                     onToggleFulfilled = { item ->
                         viewModel.toggleWishlistFulfilled(item)
@@ -339,9 +326,12 @@ fun MainAppScreen(
                     },
                     onDeletePriceTrack = { track ->
                         viewModel.deletePriceTrack(track)
+                    },
+                    onCompleteShoppingBatch = { items, wallet ->
+                        viewModel.completeShoppingBatch(items, wallet)
                     }
                 )
-                5 -> BackupSettingsScreen(
+                4 -> BackupSettingsScreen(
                     uiState = uiState,
                     onExportJsonClick = {
                         val defaultFilename = "DompetRT_Backup_${System.currentTimeMillis()}.json"
@@ -355,7 +345,8 @@ fun MainAppScreen(
                     },
                     onClearAllDataClick = {
                         viewModel.clearAllData()
-                    }
+                    },
+                    onShareRekapToWhatsApp = shareRekapToWhatsApp
                 )
             }
         }
@@ -365,6 +356,7 @@ fun MainAppScreen(
     if (showTransactionDialog) {
         TransactionInputDialog(
             onDismissRequest = { showTransactionDialog = false },
+            customCategories = uiState.budgetEnvelopes.map { it.categoryName to it.iconEmoji },
             onSaveTransaction = { type, amountExp, category, wallet, note ->
                 viewModel.addTransaction(
                     type = type,
@@ -377,15 +369,30 @@ fun MainAppScreen(
         )
     }
 
-    // Dialog: Edit / Add Budget Limit
-    budgetToEdit?.let { (category, currentLimit, emoji) ->
-        EditBudgetDialog(
-            categoryName = category,
-            currentLimit = currentLimit,
-            iconEmoji = emoji,
-            onDismissRequest = { budgetToEdit = null },
-            onSaveLimit = { newLimitExp ->
-                viewModel.setBudgetLimit(category, newLimitExp, emoji)
+    // Dialog: Tambah Pos Anggaran Baru
+    if (showCreateBudgetDialog) {
+        BudgetEnvelopeDialog(
+            initialEnvelope = null,
+            onDismissRequest = { showCreateBudgetDialog = false },
+            onSave = { name, limitExp, iconEmoji ->
+                viewModel.addBudgetCategory(name, limitExp, iconEmoji)
+                showCreateBudgetDialog = false
+            }
+        )
+    }
+
+    // Dialog: Edit Pos Anggaran
+    envelopeToEdit?.let { env ->
+        BudgetEnvelopeDialog(
+            initialEnvelope = env,
+            onDismissRequest = { envelopeToEdit = null },
+            onSave = { name, limitExp, iconEmoji ->
+                viewModel.updateBudgetCategory(env.id, name, limitExp, iconEmoji)
+                envelopeToEdit = null
+            },
+            onDelete = {
+                viewModel.deleteBudgetCategoryById(env.id)
+                envelopeToEdit = null
             }
         )
     }
@@ -394,6 +401,7 @@ fun MainAppScreen(
     if (showAddWishlistDialog) {
         AddWishlistDialog(
             onDismissRequest = { showAddWishlistDialog = false },
+            availableBudgetCategories = uiState.budgetEnvelopes.map { it.categoryName to it.iconEmoji },
             onSaveWishlist = { name, targetExp, actualExp, initialSavedExp, isSavingGoal, catType, prio, quantityOrUnit, note ->
                 viewModel.addWishlistItem(
                     name = name,
@@ -414,12 +422,15 @@ fun MainAppScreen(
     wishlistToEditPrice?.let { item ->
         EditActualPriceDialog(
             wishlist = item,
+            availableBudgetCategories = uiState.budgetEnvelopes.map { it.categoryName to it.iconEmoji },
             onDismissRequest = { wishlistToEditPrice = null },
-            onSaveActualPrice = { actualPriceExp, recordAsExpense ->
+            onSaveActualPrice = { actualPriceExp, recordAsExpense, posCategory, walletSource ->
                 viewModel.toggleWishlistFulfilled(
                     item = item,
                     actualPriceInput = actualPriceExp,
-                    recordAsTransaction = recordAsExpense
+                    recordAsTransaction = recordAsExpense,
+                    targetPosCategory = posCategory,
+                    walletSource = walletSource
                 )
             }
         )

@@ -38,6 +38,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -64,14 +65,42 @@ import com.example.util.MathExpressionEvaluator
 fun TransactionInputDialog(
     onDismissRequest: () -> Unit,
     onSaveTransaction: (type: String, amountExpression: String, category: String, wallet: String, note: String) -> Unit,
+    customCategories: List<Pair<String, String>> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var transactionType by remember { mutableStateOf(TransactionTypes.EXPENSE) }
     var expressionInput by remember { mutableStateOf("") }
     var selectedWallet by remember { mutableStateOf(WalletSources.CASH) }
-    var selectedCategory by remember { mutableStateOf(DefaultExpenseCategories.DAPUR) }
     var noteInput by remember { mutableStateOf("") }
+
+    val availableExpenseCategories = remember(customCategories) {
+        if (customCategories.isNotEmpty()) {
+            customCategories + listOf("Lainnya" to "📦")
+        } else {
+            listOf(
+                "Umum" to "📝",
+                "Belanja" to "🛒",
+                "Makanan" to "🍲",
+                "Transport" to "🛵",
+                "Lainnya" to "📦"
+            )
+        }
+    }
+    val availableIncomeCategories = remember {
+        DefaultIncomeCategories.ALL.map { it to DefaultExpenseCategories.getIconEmoji(it) }
+    }
+
+    var selectedCategory by remember {
+        mutableStateOf(availableExpenseCategories.firstOrNull()?.first ?: "Umum")
+    }
+
+    LaunchedEffect(transactionType) {
+        val currentList = if (transactionType == TransactionTypes.EXPENSE) availableExpenseCategories else availableIncomeCategories
+        if (currentList.none { it.first == selectedCategory }) {
+            selectedCategory = currentList.firstOrNull()?.first ?: ""
+        }
+    }
 
     val evaluatedAmount by remember(expressionInput) {
         derivedStateOf {
@@ -118,124 +147,90 @@ fun TransactionInputDialog(
                 }
             }
 
-            // Type Toggle
+            // Type Selector (Pengeluaran vs Pemasukan)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(12.dp))
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    .padding(4.dp)
             ) {
-                val isExpense = transactionType == TransactionTypes.EXPENSE
                 Surface(
-                    onClick = {
-                        transactionType = TransactionTypes.EXPENSE
-                        selectedCategory = DefaultExpenseCategories.DAPUR
-                    },
+                    onClick = { transactionType = TransactionTypes.EXPENSE },
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (transactionType == TransactionTypes.EXPENSE) CoralAccent else MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier
                         .weight(1f)
-                        .testTag("type_expense_btn"),
-                    shape = RoundedCornerShape(10.dp),
-                    color = if (isExpense) CoralAccent else MaterialTheme.colorScheme.surfaceVariant,
-                    tonalElevation = if (isExpense) 4.dp else 0.dp
+                        .testTag("type_expense_btn")
                 ) {
-                    Box(
+                    Text(
+                        text = "Pengeluaran",
                         modifier = Modifier.padding(vertical = 10.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "💸 Pengeluaran",
-                            fontWeight = if (isExpense) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isExpense) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                        color = if (transactionType == TransactionTypes.EXPENSE) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
                 }
                 Surface(
-                    onClick = {
-                        transactionType = TransactionTypes.INCOME
-                        selectedCategory = DefaultIncomeCategories.NAFKAH
-                    },
+                    onClick = { transactionType = TransactionTypes.INCOME },
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (transactionType == TransactionTypes.INCOME) EmeraldPrimary else MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier
                         .weight(1f)
-                        .testTag("type_income_btn"),
-                    shape = RoundedCornerShape(10.dp),
-                    color = if (!isExpense) EmeraldPrimary else MaterialTheme.colorScheme.surfaceVariant,
-                    tonalElevation = if (!isExpense) 4.dp else 0.dp
+                        .testTag("type_income_btn")
                 ) {
-                    Box(
+                    Text(
+                        text = "Pemasukan",
                         modifier = Modifier.padding(vertical = 10.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "💰 Pemasukan",
-                            fontWeight = if (!isExpense) FontWeight.Bold else FontWeight.Medium,
-                            color = if (!isExpense) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                        color = if (transactionType == TransactionTypes.INCOME) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
                 }
             }
 
-            // Mini-Calculator Amount Input
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                    .padding(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Calculate,
-                            contentDescription = "Kalkulator",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Nominal (Mendukung Kalkulator)",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    if (isCompound) {
-                        Surface(
-                            shape = CircleShape,
-                            color = EmeraldPrimary,
-                            contentColor = MaterialTheme.colorScheme.surface
-                        ) {
-                            Text(
-                                text = "Kalkulator Aktif",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
+            // Amount Input with smart math calculator
+            Column {
                 OutlinedTextField(
                     value = expressionInput,
                     onValueChange = { expressionInput = it },
+                    label = { Text("Nominal / Hitungan Otomatis") },
+                    placeholder = { Text("Ketik 15000+23000 atau nominal langsung") },
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Default.Calculate, contentDescription = null, tint = EmeraldPrimary)
+                    },
+                    trailingIcon = {
+                        if (expressionInput.isNotBlank()) {
+                            IconButton(onClick = { expressionInput = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Hapus")
+                            }
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .testTag("amount_input_field"),
-                    placeholder = { Text("Contoh: 15000+8000+12000") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                    singleLine = true,
-                    textStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                        .testTag("amount_expression_input"),
                     shape = RoundedCornerShape(12.dp)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+
+                if (isCompound) {
+                    Text(
+                        text = "⚡ Perhitungan penjumlahan otomatis aktif",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = EmeraldPrimary,
+                        modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+                    )
+                }
+
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 6.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -338,23 +333,22 @@ fun TransactionInputDialog(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 val availableCategories = if (transactionType == TransactionTypes.EXPENSE) {
-                    DefaultExpenseCategories.ALL
+                    availableExpenseCategories
                 } else {
-                    DefaultIncomeCategories.ALL
+                    availableIncomeCategories
                 }
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    availableCategories.forEach { category ->
-                        val isSelected = selectedCategory == category
-                        val emoji = DefaultExpenseCategories.getIconEmoji(category)
+                    availableCategories.forEach { (catName, emoji) ->
+                        val isSelected = selectedCategory == catName
                         FilterChip(
                             selected = isSelected,
-                            onClick = { selectedCategory = category },
-                            label = { Text("$emoji $category", fontSize = 12.sp) },
-                            modifier = Modifier.testTag("category_chip_$category")
+                            onClick = { selectedCategory = catName },
+                            label = { Text("$emoji $catName", fontSize = 12.sp) },
+                            modifier = Modifier.testTag("category_chip_$catName")
                         )
                     }
                 }

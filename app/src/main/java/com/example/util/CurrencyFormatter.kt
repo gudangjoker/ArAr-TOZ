@@ -4,7 +4,7 @@ import java.text.NumberFormat
 import java.util.Locale
 
 object CurrencyFormatter {
-    private val indonesianLocale = Locale("id", "ID")
+    private val indonesianLocale = Locale.forLanguageTag("id-ID")
 
     /**
      * Formats a Long number into Indonesian Rupiah format without decimals.

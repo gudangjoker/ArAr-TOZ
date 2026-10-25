@@ -43,7 +43,9 @@ class FinanceViewModel(
 
     init {
         viewModelScope.launch {
-            aiEngine.initializeLlm()
+            // aiEngine.initializeLlm() // Fitur Si Cici dibekukan per permintaan user
+            // Clean up unconfigured default seed categories (monthlyLimit <= 0) from legacy installs
+            repository.cleanupUnconfiguredDefaultBudgetCategories()
         }
     }
 
@@ -131,8 +133,8 @@ class FinanceViewModel(
                 TimeFilter.THIS_MONTH -> tx.dateTimestamp in startOfMonth..endOfMonth
                 TimeFilter.ALL -> true
             }
-            val categoryMatch = catFilt == null || tx.category == catFilt
-            val walletMatch = wallFilt == null || tx.walletSource == wallFilt
+            val categoryMatch = catFilt == null || tx.category.trim().equals(catFilt.trim(), ignoreCase = true)
+            val walletMatch = wallFilt == null || tx.walletSource.trim().equals(wallFilt.trim(), ignoreCase = true)
             timeMatch && categoryMatch && walletMatch
         }
 
@@ -140,12 +142,12 @@ class FinanceViewModel(
         val monthlyExpenses = transactions.filter {
             it.type == TransactionTypes.EXPENSE && it.dateTimestamp in startOfMonth..endOfMonth
         }
-        val spendingByCategory = monthlyExpenses.groupBy { it.category }
+        val spendingByCategory = monthlyExpenses.groupBy { it.category.trim().lowercase() }
             .mapValues { entry -> entry.value.sumOf { it.amount } }
 
-        val registeredCategoryNames = categories.map { it.categoryName }.toSet()
+        // Pos anggaran murni dari kategori yang dibuat pengguna (dengan pemetaan case & whitespace insensitive)
         val envelopes = categories.map { cat ->
-            val spent = spendingByCategory[cat.categoryName] ?: 0L
+            val spent = spendingByCategory[cat.categoryName.trim().lowercase()] ?: 0L
             com.example.data.model.BudgetEnvelopeItem(
                 id = cat.id,
                 categoryName = cat.categoryName,
@@ -154,23 +156,6 @@ class FinanceViewModel(
                 iconEmoji = cat.iconEmoji,
                 colorHex = cat.colorHex
             )
-        }.toMutableList()
-
-        // Include any unbudgeted spending category from transactions so total sum is 100% consistent
-        var unbudgetedId = -100L
-        spendingByCategory.forEach { (catName, spent) ->
-            if (catName !in registeredCategoryNames && spent > 0) {
-                envelopes.add(
-                    com.example.data.model.BudgetEnvelopeItem(
-                        id = unbudgetedId--,
-                        categoryName = catName,
-                        monthlyLimit = 0L,
-                        spentAmount = spent,
-                        iconEmoji = DefaultExpenseCategories.getIconEmoji(catName),
-                        colorHex = "#78909C"
-                    )
-                )
-            }
         }
 
         val (remHour, remMin) = ReminderScheduler.getReminderTime(getApplication())
@@ -246,8 +231,8 @@ class FinanceViewModel(
             val newTx = TransactionEntity(
                 type = type,
                 amount = evaluatedAmount,
-                category = category,
-                walletSource = walletSource,
+                category = category.trim(),
+                walletSource = walletSource.trim(),
                 dateTimestamp = dateTimestamp,
                 note = note.trim()
             )
@@ -264,28 +249,72 @@ class FinanceViewModel(
     }
 
     // === BUDGET CATEGORY ACTIONS ===
-    fun setBudgetLimit(categoryName: String, newLimitInput: String, iconEmoji: String = "💰") {
+    fun addBudgetCategory(name: String, limitInput: String, iconEmoji: String = "💰") {
         viewModelScope.launch {
+            val trimmedName = name.trim()
+            if (trimmedName.isBlank()) {
+                _userMessage.value = "Nama pos anggaran wajib diisi"
+                return@launch
+            }
+            val limit = parseMathExpression(limitInput)
+            if (limit <= 0) {
+                _userMessage.value = "Batas anggaran harus lebih dari Rp 0"
+                return@launch
+            }
+            val duplicate = uiState.value.budgetCategories.any {
+                it.categoryName.equals(trimmedName, ignoreCase = true)
+            }
+            if (duplicate) {
+                _userMessage.value = "Pos anggaran '$trimmedName' sudah ada"
+                return@launch
+            }
+            repository.insertBudgetCategory(
+                BudgetCategoryEntity(
+                    categoryName = trimmedName,
+                    monthlyLimit = limit,
+                    iconEmoji = iconEmoji
+                )
+            )
+            _userMessage.value = "Pos anggaran '$trimmedName' berhasil dibuat!"
+        }
+    }
+
+    fun updateBudgetCategory(
+        id: Long,
+        newName: String,
+        newLimitInput: String,
+        newIconEmoji: String
+    ) {
+        viewModelScope.launch {
+            val trimmedName = newName.trim()
+            if (trimmedName.isBlank()) {
+                _userMessage.value = "Nama pos anggaran wajib diisi"
+                return@launch
+            }
             val limit = parseMathExpression(newLimitInput)
             if (limit <= 0) {
                 _userMessage.value = "Batas anggaran harus lebih dari Rp 0"
                 return@launch
             }
-            val existing = uiState.value.budgetCategories.find { it.categoryName == categoryName }
+            val existing = uiState.value.budgetCategories.find { it.id == id }
             if (existing != null) {
-                repository.updateBudgetCategory(
-                    existing.copy(monthlyLimit = limit, iconEmoji = iconEmoji)
+                repository.updateBudgetCategoryWithTransactions(
+                    oldCategory = existing,
+                    newName = trimmedName,
+                    newLimit = limit,
+                    newIconEmoji = newIconEmoji
                 )
-                _userMessage.value = "Batas anggaran '$categoryName' diperbarui!"
-            } else {
-                repository.insertBudgetCategory(
-                    BudgetCategoryEntity(
-                        categoryName = categoryName,
-                        monthlyLimit = limit,
-                        iconEmoji = iconEmoji
-                    )
-                )
-                _userMessage.value = "Pos anggaran baru berhasil ditambahkan!"
+                _userMessage.value = "Pos anggaran '$trimmedName' berhasil diperbarui!"
+            }
+        }
+    }
+
+    fun deleteBudgetCategoryById(id: Long) {
+        viewModelScope.launch {
+            val existing = uiState.value.budgetCategories.find { it.id == id }
+            if (existing != null) {
+                repository.deleteBudgetCategory(existing)
+                _userMessage.value = "Pos anggaran '${existing.categoryName}' telah dihapus"
             }
         }
     }
@@ -294,6 +323,15 @@ class FinanceViewModel(
         viewModelScope.launch {
             repository.deleteBudgetCategory(category)
             _userMessage.value = "Pos anggaran '${category.categoryName}' dihapus"
+        }
+    }
+
+    fun setBudgetLimit(categoryName: String, newLimitInput: String, iconEmoji: String = "💰") {
+        val existing = uiState.value.budgetCategories.find { it.categoryName == categoryName }
+        if (existing != null) {
+            updateBudgetCategory(existing.id, categoryName, newLimitInput, iconEmoji)
+        } else {
+            addBudgetCategory(categoryName, newLimitInput, iconEmoji)
         }
     }
 
@@ -361,39 +399,96 @@ class FinanceViewModel(
     fun toggleWishlistFulfilled(
         item: WishlistEntity,
         actualPriceInput: String? = null,
-        recordAsTransaction: Boolean = false,
+        recordAsTransaction: Boolean = true,
+        targetPosCategory: String? = null,
         walletSource: String = WalletSources.CASH
     ) {
         viewModelScope.launch {
             val newFulfilled = !item.isFulfilled
             val actual = if (actualPriceInput != null && actualPriceInput.isNotBlank()) {
                 parseMathExpression(actualPriceInput)
-            } else item.actualPrice
+            } else if (item.actualPrice > 0) {
+                item.actualPrice
+            } else {
+                item.targetAmount
+            }
+            val posCategory = (targetPosCategory ?: item.categoryType.ifBlank { "Belanja" }).trim()
             val updated = item.copy(
                 isFulfilled = newFulfilled,
-                actualPrice = actual
+                actualPrice = if (actual > 0) actual else item.actualPrice,
+                categoryType = posCategory
             )
             repository.updateWishlist(updated)
+
+            val noteTag = "(#W${item.id})"
+
             if (newFulfilled && recordAsTransaction && actual > 0) {
-                val txCategory = when (item.categoryType) {
-                    WishlistCategories.KITCHEN -> DefaultExpenseCategories.DAPUR
-                    WishlistCategories.HOUSEHOLD -> DefaultExpenseCategories.RUMAH
-                    else -> DefaultExpenseCategories.HIBURAN
+                // Hapus transaksi lama jika sebelumnya sudah pernah dibuat untuk item ini (mencegah duplikasi)
+                val oldTx = uiState.value.allTransactions.find { it.note.contains(noteTag) }
+                if (oldTx != null) {
+                    repository.deleteTransaction(oldTx)
                 }
+
+                // Catat transaksi pengeluaran baru ke pos anggaran yang dipilih
                 repository.insertTransaction(
                     TransactionEntity(
                         type = TransactionTypes.EXPENSE,
                         amount = actual,
-                        category = txCategory,
+                        category = posCategory,
                         walletSource = walletSource,
                         dateTimestamp = DateTimeUtils.getCurrentJakartaTimeMillis(),
-                        note = "Beli: ${item.name}${if (item.quantityOrUnit.isNotBlank()) " (${item.quantityOrUnit})" else ""}".trim()
+                        note = "Belanja: ${item.name}${if (item.quantityOrUnit.isNotBlank()) " (${item.quantityOrUnit})" else ""} $noteTag".trim()
                     )
                 )
-                _userMessage.value = "✅ Ditandai dibeli & otomatis dicatat ke belanja dapur!"
-            } else {
-                _userMessage.value = if (newFulfilled) "✅ '${item.name}' ditandai sudah dibeli" else "'${item.name}' belum dibeli"
+                _userMessage.value = "✅ '${item.name}' lunas! ${CurrencyFormatter.formatRupiah(actual)} otomatis terpotong dari pos '$posCategory' & saldo kas."
+            } else if (!newFulfilled) {
+                // Ketika status lunas dibatalkan (uncheck), kembalikan uang ke pos anggaran & saldo dengan menghapus transaksi belanjanya
+                val existingTx = uiState.value.allTransactions.find { it.note.contains(noteTag) }
+                if (existingTx != null) {
+                    repository.deleteTransaction(existingTx)
+                    _userMessage.value = "↩️ Status lunas '${item.name}' dibatalkan. Dana ${CurrencyFormatter.formatRupiah(existingTx.amount)} dikembalikan ke pos '$posCategory' & saldo kas."
+                } else {
+                    _userMessage.value = "'${item.name}' ditandai belum dibeli"
+                }
             }
+        }
+    }
+
+    fun completeShoppingBatch(
+        items: List<WishlistEntity>,
+        walletSource: String = WalletSources.CASH
+    ) {
+        viewModelScope.launch {
+            var totalDeducted = 0L
+            items.forEach { item ->
+                val actual = if (item.actualPrice > 0) item.actualPrice else item.targetAmount
+                val posCategory = item.categoryType.ifBlank { "Belanja" }.trim()
+                val updated = item.copy(
+                    isFulfilled = true,
+                    actualPrice = if (actual > 0) actual else item.actualPrice
+                )
+                repository.updateWishlist(updated)
+
+                if (actual > 0) {
+                    val noteTag = "(#W${item.id})"
+                    val oldTx = uiState.value.allTransactions.find { it.note.contains(noteTag) }
+                    if (oldTx != null) {
+                        repository.deleteTransaction(oldTx)
+                    }
+                    repository.insertTransaction(
+                        TransactionEntity(
+                            type = TransactionTypes.EXPENSE,
+                            amount = actual,
+                            category = posCategory,
+                            walletSource = walletSource,
+                            dateTimestamp = DateTimeUtils.getCurrentJakartaTimeMillis(),
+                            note = "Belanja: ${item.name}${if (item.quantityOrUnit.isNotBlank()) " (${item.quantityOrUnit})" else ""} $noteTag".trim()
+                        )
+                    )
+                    totalDeducted += actual
+                }
+            }
+            _userMessage.value = "🎉 Belanja selesai! ${items.size} item lunas (${CurrencyFormatter.formatRupiah(totalDeducted)} terpotong dari pos & saldo kas)."
         }
     }
 
@@ -633,7 +728,6 @@ class FinanceViewModel(
         val currentMonth = DateTimeUtils.formatCurrentMonth()
         val currentMonthKey = DateTimeUtils.getCurrentMonthYearKey()
         val unpaidBills = state.bills.filter { it.lastPaidMonthYear != currentMonthKey }
-        val kitchenEnvelope = state.budgetEnvelopes.find { it.categoryName == DefaultExpenseCategories.DAPUR }
 
         val sb = StringBuilder()
         sb.append("📋 *Laporan Kas ArAr TOZ*\n")
@@ -644,15 +738,17 @@ class FinanceViewModel(
         sb.append("• Pengeluaran $currentMonth: ${CurrencyFormatter.formatRupiah(state.thisMonthExpense)}\n")
         sb.append("• Pemasukan $currentMonth: ${CurrencyFormatter.formatRupiah(state.thisMonthIncome)}\n\n")
 
-        if (kitchenEnvelope != null) {
-            val statusEmoji = when {
-                kitchenEnvelope.isSafe -> "🟢 Aman"
-                kitchenEnvelope.isWarning -> "🟡 Waspada"
-                else -> "🔴 Over Budget"
+        if (state.budgetEnvelopes.isNotEmpty()) {
+            sb.append("✉️ *Pos Anggaran ($currentMonth):*\n")
+            state.budgetEnvelopes.forEach { env ->
+                val statusEmoji = when {
+                    env.isSafe -> "🟢 Aman"
+                    env.isWarning -> "🟡 Waspada"
+                    else -> "🔴 Over Budget"
+                }
+                sb.append("• ${env.iconEmoji} ${env.categoryName}: ${CurrencyFormatter.formatRupiah(env.spentAmount)} / ${CurrencyFormatter.formatRupiah(env.monthlyLimit)} ($statusEmoji)\n")
             }
-            sb.append("✉️ *Pos Belanja Dapur ($currentMonth):*\n")
-            sb.append("• Terpakai: ${CurrencyFormatter.formatRupiah(kitchenEnvelope.spentAmount)} / ${CurrencyFormatter.formatRupiah(kitchenEnvelope.monthlyLimit)} ($statusEmoji)\n")
-            sb.append("• Sisa Kuota Dapur: ${CurrencyFormatter.formatRupiah(kitchenEnvelope.remainingAmount)}\n\n")
+            sb.append("\n")
         }
 
         if (unpaidBills.isNotEmpty()) {
@@ -703,8 +799,8 @@ class FinanceViewModel(
 
     fun clearAllData(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
-            repository.clearAllUserData()
-            _userMessage.value = "🗑️ Seluruh data transaksi, tagihan, hutang, dan belanja telah dibersihkan!"
+            repository.clearAllUserData(clearEnvelopes = true)
+            _userMessage.value = "🗑️ Seluruh data transaksi, pos anggaran, tagihan, hutang, dan belanja telah dibersihkan!"
             onComplete()
         }
     }

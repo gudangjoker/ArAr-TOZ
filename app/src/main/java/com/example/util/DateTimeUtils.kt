@@ -7,19 +7,37 @@ import java.util.Locale
 import java.util.TimeZone
 
 object DateTimeUtils {
+    /**
+     * Resolves the user's active device timezone dynamically.
+     * Supports all Indonesian regions: WIB (UTC+7), WITA (UTC+8), WIT (UTC+9), and international timezones.
+     */
+    val currentDeviceTimeZone: TimeZone
+        get() = TimeZone.getDefault()
+
     val jakartaTimeZone: TimeZone = TimeZone.getTimeZone("Asia/Jakarta")
-    private val indonesianLocale = Locale("id", "ID")
+    private val indonesianLocale = Locale.forLanguageTag("id-ID")
 
     fun getCurrentJakartaTimeMillis(): Long {
-        val cal = Calendar.getInstance(jakartaTimeZone)
-        return cal.timeInMillis
+        return System.currentTimeMillis()
     }
 
     /**
-     * Start of day in Jakarta Time (00:00:00.000)
+     * Returns standard Indonesian timezone abbreviation (WIB, WITA, WIT) or localized abbreviation.
+     */
+    fun getTimeZoneAbbreviation(tz: TimeZone = currentDeviceTimeZone): String {
+        return when (tz.rawOffset / (3600 * 1000)) {
+            7 -> "WIB"
+            8 -> "WITA"
+            9 -> "WIT"
+            else -> tz.getDisplayName(false, TimeZone.SHORT, indonesianLocale)
+        }
+    }
+
+    /**
+     * Start of day in local device time (00:00:00.000)
      */
     fun getStartOfDay(timestamp: Long = System.currentTimeMillis()): Long {
-        val cal = Calendar.getInstance(jakartaTimeZone)
+        val cal = Calendar.getInstance(currentDeviceTimeZone)
         cal.timeInMillis = timestamp
         cal.set(Calendar.HOUR_OF_DAY, 0)
         cal.set(Calendar.MINUTE, 0)
@@ -29,10 +47,10 @@ object DateTimeUtils {
     }
 
     /**
-     * End of day in Jakarta Time (23:59:59.999)
+     * End of day in local device time (23:59:59.999)
      */
     fun getEndOfDay(timestamp: Long = System.currentTimeMillis()): Long {
-        val cal = Calendar.getInstance(jakartaTimeZone)
+        val cal = Calendar.getInstance(currentDeviceTimeZone)
         cal.timeInMillis = timestamp
         cal.set(Calendar.HOUR_OF_DAY, 23)
         cal.set(Calendar.MINUTE, 59)
@@ -42,10 +60,10 @@ object DateTimeUtils {
     }
 
     /**
-     * Start of current month in Jakarta Time
+     * Start of current month in local device time
      */
     fun getStartOfMonth(timestamp: Long = System.currentTimeMillis()): Long {
-        val cal = Calendar.getInstance(jakartaTimeZone)
+        val cal = Calendar.getInstance(currentDeviceTimeZone)
         cal.timeInMillis = timestamp
         cal.set(Calendar.DAY_OF_MONTH, 1)
         cal.set(Calendar.HOUR_OF_DAY, 0)
@@ -56,10 +74,10 @@ object DateTimeUtils {
     }
 
     /**
-     * End of current month in Jakarta Time
+     * End of current month in local device time
      */
     fun getEndOfMonth(timestamp: Long = System.currentTimeMillis()): Long {
-        val cal = Calendar.getInstance(jakartaTimeZone)
+        val cal = Calendar.getInstance(currentDeviceTimeZone)
         cal.timeInMillis = timestamp
         cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))
         cal.set(Calendar.HOUR_OF_DAY, 23)
@@ -74,16 +92,17 @@ object DateTimeUtils {
      */
     fun formatDateWithDay(timestamp: Long): String {
         val sdf = SimpleDateFormat("EEEE, d MMM yyyy", indonesianLocale)
-        sdf.timeZone = jakartaTimeZone
+        sdf.timeZone = currentDeviceTimeZone
         return sdf.format(Date(timestamp))
     }
 
     /**
-     * Formats timestamp into: "24 Sep 2026, 14:30 WIB"
+     * Formats timestamp into: "24 Sep 2026, 14:30 WIB" (or WITA / WIT dynamically)
      */
     fun formatDateTimeJakarta(timestamp: Long): String {
-        val sdf = SimpleDateFormat("d MMM yyyy, HH:mm 'WIB'", indonesianLocale)
-        sdf.timeZone = jakartaTimeZone
+        val tzSuffix = getTimeZoneAbbreviation()
+        val sdf = SimpleDateFormat("d MMM yyyy, HH:mm '$tzSuffix'", indonesianLocale)
+        sdf.timeZone = currentDeviceTimeZone
         return sdf.format(Date(timestamp))
     }
 
@@ -92,7 +111,7 @@ object DateTimeUtils {
      */
     fun formatCurrentMonth(timestamp: Long = System.currentTimeMillis()): String {
         val sdf = SimpleDateFormat("MMMM yyyy", indonesianLocale)
-        sdf.timeZone = jakartaTimeZone
+        sdf.timeZone = currentDeviceTimeZone
         return sdf.format(Date(timestamp))
     }
 
@@ -101,7 +120,7 @@ object DateTimeUtils {
      */
     fun formatShortDate(timestamp: Long): String {
         val sdf = SimpleDateFormat("d MMM", indonesianLocale)
-        sdf.timeZone = jakartaTimeZone
+        sdf.timeZone = currentDeviceTimeZone
         return sdf.format(Date(timestamp))
     }
 
@@ -110,15 +129,15 @@ object DateTimeUtils {
      */
     fun getCurrentMonthYearKey(timestamp: Long = System.currentTimeMillis()): String {
         val sdf = SimpleDateFormat("MM-yyyy", indonesianLocale)
-        sdf.timeZone = jakartaTimeZone
+        sdf.timeZone = currentDeviceTimeZone
         return sdf.format(Date(timestamp))
     }
 
     /**
-     * Start of last month in Jakarta Time
+     * Start of last month in local device time
      */
     fun getStartOfLastMonth(timestamp: Long = System.currentTimeMillis()): Long {
-        val cal = Calendar.getInstance(jakartaTimeZone)
+        val cal = Calendar.getInstance(currentDeviceTimeZone)
         cal.timeInMillis = timestamp
         cal.add(Calendar.MONTH, -1)
         cal.set(Calendar.DAY_OF_MONTH, 1)
@@ -130,10 +149,10 @@ object DateTimeUtils {
     }
 
     /**
-     * End of last month in Jakarta Time
+     * End of last month in local device time
      */
     fun getEndOfLastMonth(timestamp: Long = System.currentTimeMillis()): Long {
-        val cal = Calendar.getInstance(jakartaTimeZone)
+        val cal = Calendar.getInstance(currentDeviceTimeZone)
         cal.timeInMillis = timestamp
         cal.add(Calendar.MONTH, -1)
         cal.set(Calendar.DAY_OF_MONTH, cal.getActualMaximum(Calendar.DAY_OF_MONTH))

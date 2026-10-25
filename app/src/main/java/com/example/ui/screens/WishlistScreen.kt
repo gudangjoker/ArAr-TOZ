@@ -80,10 +80,12 @@ fun WishlistScreen(
     onAddPriceTrackClick: () -> Unit,
     onEditPriceTrackClick: (PriceTrackerEntity) -> Unit,
     onDeletePriceTrack: (PriceTrackerEntity) -> Unit,
+    onCompleteShoppingBatch: ((List<WishlistEntity>, String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var screenTab by remember { mutableIntStateOf(0) }
     var activeFilter by remember { mutableStateOf(ShoppingViewFilter.ALL) }
+    var showCompleteShoppingDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -226,18 +228,40 @@ fun WishlistScreen(
                 }
 
                 item {
-                    Button(
-                        onClick = onAddNewWishlist,
-                        colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .testTag("add_wishlist_screen_btn")
+                    val unboughtItems = uiState.wishlistItems.filter { !it.isFulfilled }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Tambah Belanja Dapur / Wishlist", fontWeight = FontWeight.Bold)
+                        Button(
+                            onClick = onAddNewWishlist,
+                            colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .weight(if (unboughtItems.isNotEmpty()) 1.1f else 1f)
+                                .height(48.dp)
+                                .testTag("add_wishlist_screen_btn")
+                        ) {
+                            Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(if (unboughtItems.isNotEmpty()) "Tambah Item" else "Tambah Belanja / Wishlist", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        }
+
+                        if (unboughtItems.isNotEmpty()) {
+                            Button(
+                                onClick = { showCompleteShoppingDialog = true },
+                                colors = ButtonDefaults.buttonColors(containerColor = GreenBudgetSafe),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp)
+                                    .testTag("complete_shopping_btn")
+                            ) {
+                                Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Selesaikan (${unboughtItems.size})", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
+                        }
                     }
                 }
 
@@ -379,6 +403,93 @@ fun WishlistScreen(
                 }
             }
         }
+    }
+
+    if (showCompleteShoppingDialog) {
+        val unboughtItems = uiState.wishlistItems.filter { !it.isFulfilled }
+        val totalAmount = unboughtItems.sumOf { if (it.actualPrice > 0) it.actualPrice else it.targetAmount }
+        var selectedWallet by remember { mutableStateOf(com.example.data.model.WalletSources.CASH) }
+
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showCompleteShoppingDialog = false },
+            title = {
+                Text(
+                    text = "Selesaikan Belanjaan? 🛍️",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "Apakah Bunda ingin menyelesaikan ${unboughtItems.size} barang belanjaan sekaligus?",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Total Pengeluaran: ${CurrencyFormatter.formatRupiah(totalAmount)}",
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontSize = 14.sp
+                            )
+                            Text(
+                                text = "Dana akan otomatis dipotong dari pos anggaran masing-masing barang & saldo kas Anda.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+
+                    Column {
+                        Text(
+                            text = "Sumber Dompet:",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState())
+                        ) {
+                            com.example.data.model.WalletSources.ALL.forEach { wallet ->
+                                val isSel = selectedWallet == wallet
+                                FilterChip(
+                                    selected = isSel,
+                                    onClick = { selectedWallet = wallet },
+                                    label = { Text(wallet, fontSize = 11.sp) }
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showCompleteShoppingDialog = false
+                        onCompleteShoppingBatch?.invoke(unboughtItems, selectedWallet)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = GreenBudgetSafe)
+                ) {
+                    Text("Ya, Selesaikan & Potong Kas", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.OutlinedButton(onClick = { showCompleteShoppingDialog = false }) {
+                    Text("Batal")
+                }
+            }
+        )
     }
 }
 

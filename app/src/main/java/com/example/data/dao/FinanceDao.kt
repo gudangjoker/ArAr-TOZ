@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.example.data.entity.BillEntity
 import com.example.data.entity.BudgetCategoryEntity
@@ -72,6 +73,15 @@ interface FinanceDao {
 
     @Query("DELETE FROM budget_categories WHERE id = :id")
     suspend fun deleteBudgetCategoryById(id: Long)
+
+    @Query("SELECT * FROM budget_categories WHERE id = :id LIMIT 1")
+    suspend fun getBudgetCategoryById(id: Long): BudgetCategoryEntity?
+
+    @Query("UPDATE transactions SET category = :newName WHERE category = :oldName")
+    suspend fun updateTransactionCategoryName(oldName: String, newName: String)
+
+    @Query("DELETE FROM budget_categories WHERE monthlyLimit <= 0")
+    suspend fun deleteUnconfiguredBudgetCategories()
 
     // === WISHLIST ===
     @Query("SELECT * FROM wishlist ORDER BY isFulfilled ASC, priority DESC, createdAt DESC")
@@ -179,4 +189,64 @@ interface FinanceDao {
 
     @Query("DELETE FROM price_tracker")
     suspend fun clearPriceTracks()
+
+    /**
+     * Atomic restore of all backup data wrapped in an SQLite transaction.
+     * If any table fails, all modifications are rolled back, preventing corrupted half-restored state.
+     */
+    @Transaction
+    suspend fun restoreBackupAtomic(
+        transactions: List<TransactionEntity>,
+        budgetCategories: List<BudgetCategoryEntity>,
+        wishlist: List<WishlistEntity>,
+        bills: List<BillEntity>,
+        debts: List<DebtLoanEntity>,
+        priceTracks: List<PriceTrackerEntity>
+    ) {
+        clearTransactions()
+        if (transactions.isNotEmpty()) {
+            insertAllTransactions(transactions)
+        }
+
+        clearBudgetCategories()
+        if (budgetCategories.isNotEmpty()) {
+            insertBudgetCategories(budgetCategories)
+        }
+
+        clearWishlist()
+        if (wishlist.isNotEmpty()) {
+            insertWishlists(wishlist)
+        }
+
+        clearBills()
+        if (bills.isNotEmpty()) {
+            insertBills(bills)
+        }
+
+        clearDebts()
+        if (debts.isNotEmpty()) {
+            insertDebtLoans(debts)
+        }
+
+        clearPriceTracks()
+        if (priceTracks.isNotEmpty()) {
+            insertPriceTracks(priceTracks)
+        }
+    }
+
+    /**
+     * Atomically clears all financial data.
+     * When clearEnvelopes is true, budget envelopes are also cleared.
+     */
+    @Transaction
+    suspend fun clearAllDataAtomic(clearEnvelopes: Boolean = true) {
+        clearTransactions()
+        clearWishlist()
+        clearBills()
+        clearDebts()
+        clearPriceTracks()
+        if (clearEnvelopes) {
+            clearBudgetCategories()
+        }
+    }
 }

@@ -2,6 +2,7 @@ package com.example.ui.dialog
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -49,6 +51,7 @@ import com.example.util.MathExpressionEvaluator
 @Composable
 fun AddWishlistDialog(
     onDismissRequest: () -> Unit,
+    availableBudgetCategories: List<Pair<String, String>> = emptyList(),
     onSaveWishlist: (
         name: String,
         targetAmountExp: String,
@@ -61,13 +64,20 @@ fun AddWishlistDialog(
         note: String
     ) -> Unit
 ) {
+    val posOptions = remember(availableBudgetCategories) {
+        if (availableBudgetCategories.isNotEmpty()) {
+            availableBudgetCategories
+        } else {
+            listOf("Belanja Umum" to "📝", "Kebutuhan Rumah" to "🏠", "Keinginan Pribadi" to "🎁")
+        }
+    }
     var isSavingGoal by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
     var quantityOrUnit by remember { mutableStateOf("") }
     var targetExp by remember { mutableStateOf("") }
     var actualExp by remember { mutableStateOf("") }
     var initialSavedExp by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf(WishlistCategories.KITCHEN) }
+    var selectedCategory by remember { mutableStateOf(posOptions.firstOrNull()?.first ?: "Belanja Umum") }
     var selectedPriority by remember { mutableStateOf(WishlistPriorities.HIGH) }
     var note by remember { mutableStateOf("") }
 
@@ -229,21 +239,22 @@ fun AddWishlistDialog(
 
                 Column {
                     Text(
-                        text = "Kategori Pos:",
+                        text = "Sumber Pos Anggaran:",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
                     ) {
-                        WishlistCategories.ALL.forEach { cat ->
+                        posOptions.forEach { (catName, emoji) ->
                             FilterChip(
-                                selected = selectedCategory == cat,
-                                onClick = { selectedCategory = cat },
-                                label = { Text(cat, fontSize = 11.sp) }
+                                selected = selectedCategory == catName,
+                                onClick = { selectedCategory = catName },
+                                label = { Text("$emoji $catName", fontSize = 11.sp) }
                             )
                         }
                     }
@@ -316,11 +327,27 @@ fun AddWishlistDialog(
 @Composable
 fun EditActualPriceDialog(
     wishlist: WishlistEntity,
+    availableBudgetCategories: List<Pair<String, String>> = emptyList(),
     onDismissRequest: () -> Unit,
-    onSaveActualPrice: (actualPriceExp: String, recordAsExpense: Boolean) -> Unit
+    onSaveActualPrice: (actualPriceExp: String, recordAsExpense: Boolean, posCategory: String, walletSource: String) -> Unit
 ) {
-    var priceExp by remember { mutableStateOf(if (wishlist.actualPrice > 0) wishlist.actualPrice.toString() else "") }
+    var priceExp by remember { mutableStateOf(if (wishlist.actualPrice > 0) wishlist.actualPrice.toString() else if (wishlist.targetAmount > 0) wishlist.targetAmount.toString() else "") }
     var recordAsExpense by remember { mutableStateOf(true) }
+    val posOptions = remember(availableBudgetCategories) {
+        if (availableBudgetCategories.isNotEmpty()) {
+            availableBudgetCategories
+        } else {
+            listOf(wishlist.categoryType to "✉️")
+        }
+    }
+    var selectedPos by remember {
+        mutableStateOf(
+            if (posOptions.any { it.first == wishlist.categoryType }) wishlist.categoryType
+            else posOptions.firstOrNull()?.first ?: wishlist.categoryType
+        )
+    }
+    var selectedWallet by remember { mutableStateOf(com.example.data.model.WalletSources.CASH) }
+
     val calculatedPrice by remember(priceExp) {
         derivedStateOf { MathExpressionEvaluator.evaluateMathExpression(priceExp) }
     }
@@ -330,14 +357,16 @@ fun EditActualPriceDialog(
         modifier = Modifier.testTag("edit_actual_price_dialog"),
         title = {
             Text(
-                text = "Catat Harga Beli Sebenarnya 🛒",
+                text = "Catat Harga Beli & Sumber Pos 🛒",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
         },
         text = {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
@@ -355,7 +384,7 @@ fun EditActualPriceDialog(
                 OutlinedTextField(
                     value = priceExp,
                     onValueChange = { priceExp = it },
-                    label = { Text("Harga Sebenarnya (Bisa Kalkulator)") },
+                    label = { Text("Harga Sebenarnya (Bisa Hitung Otomatis)") },
                     placeholder = { Text("Contoh: 32000 atau 15000+17000") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -381,6 +410,57 @@ fun EditActualPriceDialog(
                         )
                     }
                 }
+
+                // Sumber Pos Anggaran
+                Column {
+                    Text(
+                        text = "Sumber Pos Anggaran:",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        posOptions.forEach { (catName, emoji) ->
+                            val isSel = selectedPos == catName
+                            FilterChip(
+                                selected = isSel,
+                                onClick = { selectedPos = catName },
+                                label = { Text("$emoji $catName", fontSize = 11.sp) }
+                            )
+                        }
+                    }
+                }
+
+                // Sumber Dompet
+                Column {
+                    Text(
+                        text = "Sumber Dompet:",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        com.example.data.model.WalletSources.ALL.forEach { wallet ->
+                            val isSel = selectedWallet == wallet
+                            FilterChip(
+                                selected = isSel,
+                                onClick = { selectedWallet = wallet },
+                                label = { Text(wallet, fontSize = 11.sp) }
+                            )
+                        }
+                    }
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
@@ -392,7 +472,7 @@ fun EditActualPriceDialog(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Sekaligus catat ke pengeluaran belanja dapur & tandai sudah dibeli",
+                        text = "Otomatis potong kuota pos '$selectedPos' & kurangi saldo kas",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -402,12 +482,12 @@ fun EditActualPriceDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    onSaveActualPrice(priceExp, recordAsExpense)
+                    onSaveActualPrice(priceExp, recordAsExpense, selectedPos, selectedWallet)
                     onDismissRequest()
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = EmeraldPrimary)
             ) {
-                Text("Simpan Harga")
+                Text("Simpan & Selesaikan")
             }
         },
         dismissButton = {

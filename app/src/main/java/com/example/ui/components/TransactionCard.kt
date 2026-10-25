@@ -152,14 +152,14 @@ fun TransactionCard(
                 IconButton(
                     onClick = onDelete,
                     modifier = Modifier
-                        .size(28.dp)
+                        .size(44.dp)
                         .testTag("delete_tx_${transaction.id}")
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Delete,
                         contentDescription = "Hapus transaksi",
                         tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(18.dp)
                     )
                 }
             }

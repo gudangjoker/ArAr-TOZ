@@ -5,10 +5,6 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <application
         android:allowBackup="true"
@@ -42,7 +38,8 @@
             </intent-filter>
         </receiver>
 
-        <!-- Floating Jarvis Assistant Foreground Service -->
+        <!-- Floating Assistant Foreground Service dibekukan untuk produksi (source code tersimpan di com.example.service) -->
+        <!--
         <service
             android:name=".service.JarvisFloatingService"
             android:enabled="true"
@@ -52,6 +49,7 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Offline Smart Assistant Floating Service" />
         </service>
+        -->
 
     </application>
 </manifest>

@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Tag rilis (contoh: v1.0.1)'
+        description: 'Tag rilis (contoh: v1.0.2)'
         required: false
-        default: 'v1.0.1'
+        default: 'v1.0.2'
 
 permissions:
   contents: write
@@ -96,16 +96,17 @@ jobs:
             
             ### 📱 Informasi Rilis:
             - **Nama Aplikasi**: **ArAr TOZ**
-            - **Versi Rilis**: `1.0.1` (`${{ steps.vars.outputs.tag }}`)
+            - **Versi Rilis**: `1.0.2` (`${{ steps.vars.outputs.tag }}`)
             - **Package ID**: `com.aistudio.arartoz.jvsd`
             - **Target Android**: Android 7.0 (API 24) s/d Android 16 (API 36)
             - **Tanda Tangan Digital**: Ditandatangani dengan kunci rilis permanen RSA 2048-bit (Berlaku s/d tahun 2054)
             
             ---
             
-            ### ✨ Pembaruan & Fitur Utama:
-            - 🎨 **Branding Baru**: Resmi berganti nama menjadi **ArAr TOZ** lengkap dengan ikon launcher adaptif antialias tanpa sudut putih.
-            - 🧮 **Kalkulator Cepat & Bebas Bentrok**: Evaluator ekspresi matematika real-time mendukung tanda kurung, pemisah ribuan titik/koma, dan nilai desimal tanpa pembulatan keliru.
-            - ✉️ **Sinkronisasi Pos Amplop Anggaran**: Kuota kategori belanja bulanan selalu sinkron real-time dengan transaksi pengeluaran.
-            - 📊 **Deteksi Dini Defisit**: Peringatan visual otomatis apabila belanja keluarga melebihi pemasukan bulan berjalan.
-            - 🤖 **Offline Smart Assistant**: Asisten pintar offline untuk input kas & cek ringkasan saldo lokal 100% di HP.
+            ### ✨ Pembaruan & Fitur Utama v1.0.2:
+            - 🛡️ **Integritas Database Produksi**: Restore backup atomik SQLite `@Transaction` dengan proteksi rollback otomatis serta pembersihan data menyeluruh.
+            - 🛍️ **Otomasi Belanja & Kuota Pos**: Tiap item belanja memotong otomatis kuota pos anggaran terkait dan saldo kas ketika diselesaikan.
+            - 🔒 **Kepatuhan Google Play Store**: Pembersihan izin sensitif (audio, overlay, foreground service) untuk kelancaran persetujuan rilis store.
+            - 🌐 **Timezone Dinamis**: Mendukung seluruh zona waktu Indonesia (WIB, WITA, WIT) secara otomatis.
+            - 🎨 **UI/UX Rekonstruksi**: Penataan antarmuka bersih, FAB ringkas hanya pada ringkasan, dan pemindahan fitur rekap WhatsApp ke analisis & cadangan.
+            - 📦 **R8 / Proguard Hardening**: Keep rules untuk keutuhan struktur JSON backup dan model entitas database.

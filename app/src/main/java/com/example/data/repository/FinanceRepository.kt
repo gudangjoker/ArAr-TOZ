@@ -48,11 +48,12 @@ class FinanceRepository(private val dao: FinanceDao) {
             dao.getAllBudgetCategories(),
             dao.getCategoryExpenseSummaryBetween(startOfMonth, endOfMonth)
         ) { categories, summaries ->
-            val spendingMap = summaries.associate { it.category to it.totalSpent }
+            val spendingMap = summaries.associate { it.category.trim().lowercase() to it.totalSpent }
             val existingCategoryNames = categories.map { it.categoryName }.toSet()
 
-            val envelopeList = categories.map { cat ->
-                val spent = spendingMap[cat.categoryName] ?: 0L
+            // Only map user-defined budget categories
+            categories.map { cat ->
+                val spent = spendingMap[cat.categoryName.trim().lowercase()] ?: 0L
                 BudgetEnvelopeItem(
                     id = cat.id,
                     categoryName = cat.categoryName,
@@ -61,26 +62,7 @@ class FinanceRepository(private val dao: FinanceDao) {
                     iconEmoji = cat.iconEmoji,
                     colorHex = cat.colorHex
                 )
-            }.toMutableList()
-
-            // Include unbudgeted categories from transactions
-            var unbudgetedId = -100L
-            summaries.forEach { summary ->
-                if (summary.category !in existingCategoryNames && summary.totalSpent > 0) {
-                    envelopeList.add(
-                        BudgetEnvelopeItem(
-                            id = unbudgetedId--,
-                            categoryName = summary.category,
-                            monthlyLimit = 0L,
-                            spentAmount = summary.totalSpent,
-                            iconEmoji = com.example.data.model.DefaultExpenseCategories.getIconEmoji(summary.category),
-                            colorHex = "#78909C"
-                        )
-                    )
-                }
             }
-
-            envelopeList
         }
     }
 
@@ -122,10 +104,35 @@ class FinanceRepository(private val dao: FinanceDao) {
             dao.updateBudgetCategory(category)
         }
 
+    suspend fun updateBudgetCategoryWithTransactions(
+        oldCategory: BudgetCategoryEntity,
+        newName: String,
+        newLimit: Long,
+        newIconEmoji: String
+    ) = withContext(Dispatchers.IO) {
+        if (oldCategory.categoryName != newName) {
+            dao.updateTransactionCategoryName(oldCategory.categoryName, newName)
+        }
+        val updated = oldCategory.copy(
+            categoryName = newName,
+            monthlyLimit = newLimit,
+            iconEmoji = newIconEmoji
+        )
+        dao.updateBudgetCategory(updated)
+    }
+
     suspend fun deleteBudgetCategory(category: BudgetCategoryEntity) =
         withContext(Dispatchers.IO) {
             dao.deleteBudgetCategory(category)
         }
+
+    suspend fun deleteBudgetCategoryById(id: Long) = withContext(Dispatchers.IO) {
+        dao.deleteBudgetCategoryById(id)
+    }
+
+    suspend fun cleanupUnconfiguredDefaultBudgetCategories() = withContext(Dispatchers.IO) {
+        dao.deleteUnconfiguredBudgetCategories()
+    }
 
     suspend fun insertWishlist(item: WishlistEntity): Long =
         withContext(Dispatchers.IO) {
@@ -240,44 +247,32 @@ class FinanceRepository(private val dao: FinanceDao) {
             val backup = gson.fromJson(jsonContent, BackupData::class.java)
                 ?: return@withContext Result.failure(Exception("Format JSON kosong atau tidak valid"))
 
-            if (backup.transactions.isNotEmpty()) {
-                dao.clearTransactions()
-                dao.insertAllTransactions(backup.transactions)
-            }
-            if (backup.budgetCategories.isNotEmpty()) {
-                dao.clearBudgetCategories()
-                dao.insertBudgetCategories(backup.budgetCategories)
-            }
-            if (backup.wishlist.isNotEmpty()) {
-                dao.clearWishlist()
-                dao.insertWishlists(backup.wishlist)
-            }
-            if (backup.bills.isNotEmpty()) {
-                dao.clearBills()
-                dao.insertBills(backup.bills)
-            }
-            if (backup.debts.isNotEmpty()) {
-                dao.clearDebts()
-                dao.insertDebtLoans(backup.debts)
-            }
-            if (backup.priceTracks.isNotEmpty()) {
-                dao.clearPriceTracks()
-                dao.insertPriceTracks(backup.priceTracks)
-            }
+            val transactions = backup.transactions ?: emptyList()
+            val budgetCategories = backup.budgetCategories ?: emptyList()
+            val wishlist = backup.wishlist ?: emptyList()
+            val bills = backup.bills ?: emptyList()
+            val debts = backup.debts ?: emptyList()
+            val priceTracks = backup.priceTracks ?: emptyList()
 
-            val totalRestored = backup.transactions.size + backup.budgetCategories.size +
-                backup.wishlist.size + backup.bills.size + backup.debts.size + backup.priceTracks.size
+            // Atomically restores in a single SQLite transaction with automatic rollback on error
+            dao.restoreBackupAtomic(
+                transactions = transactions,
+                budgetCategories = budgetCategories,
+                wishlist = wishlist,
+                bills = bills,
+                debts = debts,
+                priceTracks = priceTracks
+            )
+
+            val totalRestored = transactions.size + budgetCategories.size +
+                wishlist.size + bills.size + debts.size + priceTracks.size
             Result.success(totalRestored)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    suspend fun clearAllUserData() = withContext(Dispatchers.IO) {
-        dao.clearTransactions()
-        dao.clearWishlist()
-        dao.clearBills()
-        dao.clearDebts()
-        dao.clearPriceTracks()
+    suspend fun clearAllUserData(clearEnvelopes: Boolean = true) = withContext(Dispatchers.IO) {
+        dao.clearAllDataAtomic(clearEnvelopes)
     }
 }
